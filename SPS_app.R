@@ -27,7 +27,7 @@ ui <- fluidPage(
             tabsetPanel(
                     tabPanel("Plot",
                              fluidRow(
-                               column(10,
+                               column(12,
                                       h3("Material inputs"),
                                       
                                       column(3,
@@ -39,22 +39,22 @@ ui <- fluidPage(
                                       
                                       column(3,numericInput("mpoudre", h5("Powder mass (g)"), value = 1))),
 
-                             column(10,
+                             column(12,
                                       sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(450, 1500), width = '100%')),
                                       
                                
-                                 column(10, h3("Graph settings"),
-                                        column(5,
+                                 column(12, h3("Graph settings"),
+                                        column(6,
                                                sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05),
                                                sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)
                                                ),
                                         
-                                        column(5,
+                                        column(6,
                                                selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
                                                                                                                    Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag'))))),
                              
                              "I am above graph",
-                             textOutput(paste("You have selected diameter ",input$Dech)),
+                             # textOutput(paste("You have selected diameter ",input$Dech)),
                              uiOutput("plot.ui"),
                              "I am below graph",
                              fluidRow(
