@@ -17,7 +17,7 @@ ui <- fluidPage(
         sidebarPanel(width = 2,
             fileInput("file_in","Data file", multiple = FALSE),
             fileInput("blanc_in","Blanc file", multiple = FALSE),
-
+            numericInput("sample_rate", h5("Sampling rate"), value = 10),
             actionButton("update_wt", "Update Windowtest plot"),
             selectInput("sps_type", "Choose SPS device:", choices =  list(FCT = c(`FCT HPD 25` = 'HPD25', `FCT HPD 5` = 'HPD5'),
                 Sumitomo = c(`Dr Sinter 2080` = 'DS2080')))
@@ -56,7 +56,7 @@ ui <- fluidPage(
                              
                              "I am above graph",
                              
-                             uiOutput("plot.ui"),
+                             plotOutput("reduced_plot"),
                              
                              
                              "I am below graph",
@@ -67,8 +67,8 @@ ui <- fluidPage(
                              )
                 )),
                 tabPanel("Data", dataTableOutput("reduced_data_table")),
-                tabPanel("Reference", dataTableOutput("reduced_data_table_blanc")),
-                tabPanel("Reference", dataTableOutput("window_table")),
+                tabPanel("Data blanc", dataTableOutput("reduced_data_table_blanc")),
+                tabPanel("Sampled data",dataTableOutput("window_table")),
                 tabPanel("Help",htmlOutput("helptxt"))
             )
         )
@@ -131,20 +131,6 @@ datablc<-reactive({
 
 #need to create the appropriate dataset to plot window test graph
 
-check <- eventReactive(input$update_wt, {
-  
-  #import all inputs
-  sps_type <- input$sps_type
-  dmes <- input$dmes
-  dth <- input$dth
-  Dech <- input$Dech
-  mpoudre <- input$mpoudre
-  Tmin <- input$Trangeinput[1]
-  Tmax <- input$Trangeinput[2]
-
-  return(c("sps_type",sps_type,"dmes",dmes,"dth",dth,"Dech",class(Dech),"mpoudre",mpoudre,"Tmin",Tmin,"Tmax",Tmax))
-})
-
 
 window_data <- eventReactive(input$update_wt, {
 
@@ -199,7 +185,6 @@ window_data <- eventReactive(input$update_wt, {
     data2 <- data2[data2$AV.Pyrometer<tmax,]
   }
   
-  
   #d?placement relatifs (blanc et ech)
   data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
   data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
@@ -230,12 +215,10 @@ window_data <- eventReactive(input$update_wt, {
   data$DDDTsurD <- NA
   for(i in 2:(length(data$No.)-1)) data$DDDTsurD[i] <- (1/data$density[i])*((data$density[i+1]-data$density[i-1]))/((data$AV.Pyrometer[i+1]-data$AV.Pyrometer[i-1]))
   
-  
   #subset
-  taux_ech <- 11
-  data_ech <- data[data$No. %% taux_ech ==0,]
 
-    
+  data_ech <- data[data$No. %% input$sample_rate ==0,]
+
   return(data_ech)
 })
 
@@ -305,35 +288,16 @@ window_data <- eventReactive(input$update_wt, {
      
      
      output$reduced_plot <- renderPlot({
-         plottype <- input$pl_type
-         tmin <- input$Trangeinput[1]
-         tmax <- input$Trangeinput[2]
+       
          win_data <- window_data() 
-         col_pal <- color_palette()
-         
-         g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD)) + geom_line() + xlim(0.9 * tmin ,1.1 * tmax)
-
-         #shaping
-         g <-  g + theme_bw()
-         g <- g + col_pal
-         g <- g + theme(axis.text.x=element_text(size=12,angle=90,hjust=0,vjust=0.5),
-                           axis.title.x=element_blank(),
-                           axis.title.y=element_blank(),
-                           plot.title=element_text(size=25, face="bold",vjust=1),
-                           strip.text.x=element_text(size=14,face="bold",color="white"),
-                           strip.text.y=element_text(size=14, face="bold",color="white"),
-                           strip.background =element_rect(fill="#2d2d2d"),
-                           legend.position="none")
-            
-            ggsave("plot.pdf", g,width =input$Down_width/300,height = input$Down_height/300)
-            
+         g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD)) + geom_line()
          print(g)
+         
          })
      
-     
-     output$plot.ui <- renderUI({
-         plotOutput("reduced_plot", height = input$height)
-     })
+     # output$plot.ui <- renderUI({
+     #     plotOutput("reduced_plot", width="100%")
+     # })
      
      output$dwnld <- downloadHandler(
          filename = function() {
