@@ -211,13 +211,15 @@ window_data <- eventReactive(input$update_wt, {
   #densit? relative
   data$reldensity <- data$density/dth
   
-  #d?riv?e
-  data$DDDTsurD <- NA
-  for(i in 2:(length(data$No.)-1)) data$DDDTsurD[i] <- (1/data$density[i])*((data$density[i+1]-data$density[i-1]))/((data$AV.Pyrometer[i+1]-data$AV.Pyrometer[i-1]))
   
   #subset
-
+  
   data_ech <- data[data$No. %% input$sample_rate ==0,]
+  
+  #d?riv?e
+  data_ech$DDDTsurD <- NA
+  for(i in 2:(length(data_ech$No.)-1)) data_ech$DDDTsurD[i] <- (1/data_ech$density[i])*((data_ech$density[i+1]-data_ech$density[i-1]))/((data_ech$AV.Pyrometer[i+1]-data_ech$AV.Pyrometer[i-1]))
+  
 
   return(data_ech)
 })
