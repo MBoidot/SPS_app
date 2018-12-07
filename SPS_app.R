@@ -88,14 +88,30 @@ dataset <-reactive({
         return(NULL)
       }
       
-      data <-  read.csv2(inFile$datapath)
+    
+      #conditionnement de la lecture des données
+      if (sps_type=="HPD5"){
+        data <-  read.csv2(inFile$datapath,header=TRUE, sep=";")
+        
+        #retrait de la premiere ligne d'unites
+        data <- data[-1,]
+        
+        #on garde les colonnes utiles
+        data <- data[,c(1,5,6,12,14,16,17)]
+        
+        
+      } else {
+        data <-  read.csv2(inFile$datapath,header=TRUE, sep=",")
+        
+        #retrait de la premiere ligne d'unites
+        data <- data[-1,]
+        
+        #on garde les colonnes utiles
+        data <- data[,c(1,5,6,7,10,12,17,18)]
+        
+      }
       
-      #retrait de la premiere ligne d'unites
-      data <- data[-1,]
-      # data2 <- data2[-1,]
-      
-      #on garde les colonnes utiles
-      data <- data[,c(1,5,6,12,14,16,17)]
+
       data[] <- sapply(data, gsub, pattern = ",", replacement= ".")
       data[] <- sapply(data, as.numeric)
       
@@ -114,17 +130,29 @@ datablc<-reactive({
     return(NULL)
   }
   
-  data2 <-  read.csv2(blcFile$datapath)
+  if (sps_type=="HPD5"){
+    data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=";")
+    
+    #retrait de la premiere ligne d'unites
+    data2 <- data2[-1,]
+    
+    #on garde les colonnes utiles
+    data2 <- data2[,c(1,5,6,12,14,16,17)]
+    
+    
+  } else {
+    data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=",")
+    
+    #retrait de la premiere ligne d'unites
+    data2 <- data2[-1,]
+    
+    #on garde les colonnes utiles
+    data2 <- data2[,c(1,5,6,7,10,12,17,18)]
+  }
   
-  #retrait de la premiere ligne d'unites
-  data2 <- data2[-1,]
-  # data2 <- data2[-1,]
-  
-  #on garde les colonnes utiles
-  data2 <- data2[,c(1,5,6,12,14,16,17)]
   data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
   data2[] <- sapply(data2, as.numeric)
-
+  
   return(data2)
   
 })
@@ -203,12 +231,12 @@ window_data <- eventReactive(input$update_wt, {
   hfin <- mpoudre/(((pi*(Dech/20)^2))*dmes)
   
   #hauteur lit de poudre
-  data$hlitpoudre <- hfin + data[data$No.==length(data$No.),"reldisp"] - data$reldisp
+  data$hlitpoudre <- hfin + data[length(data$No.),"reldisp"] - data$reldisp
   
   #densit?
   data$density <- mpoudre/(((pi*(Dech/20)^2))*data$hlitpoudre)
   
-  #densit? relative
+  #density relative
   data$reldensity <- data$density/dth
   
   
@@ -216,9 +244,9 @@ window_data <- eventReactive(input$update_wt, {
   
   data_ech <- data[data$No. %% input$sample_rate ==0,]
   
-  #d?riv?e
+  #dérivée
   data_ech$DDDTsurD <- NA
-  for(i in 2:(length(data_ech$No.)-1)) data_ech$DDDTsurD[i] <- (1/data_ech$density[i])*((data_ech$density[i+1]-data_ech$density[i-1]))/((data_ech$AV.Pyrometer[i+1]-data_ech$AV.Pyrometer[i-1]))
+  for(i in 2:(length(data_ech$No.)-1)) data_ech$DDDTsurD[i] <- (1/data_ech$density[i])*((data_ech$density[i+1]-data_ech$density[i-1]))/((data_ech$No.[i+1]-data_ech$No.[i-1]))
   
 
   return(data_ech)
