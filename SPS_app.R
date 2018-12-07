@@ -8,6 +8,19 @@ library(viridis)
 library(zoo)
 library(lubridate)
 
+theme_set(theme_bw(10))
+theme_update(panel.grid.major=element_blank(),
+             panel.grid.minor=element_blank(),
+             legend.title=element_text(size=18),
+             axis.title.x=element_text(size=20),
+             axis.title.y=element_text(size=20,angle=90,vjust=1.5),
+             axis.text.x=element_text(size=16),
+             axis.text.y=element_text(size=16),
+             legend.text=element_text(size=16),
+             plot.title=element_text(size=25, face="bold",vjust=0.5),
+             strip.text.x=element_text(size=14,face="bold"),
+             strip.text.y=element_text(size=14,face="bold"))
+
 
 ui <- fluidPage(
     
@@ -52,20 +65,28 @@ ui <- fluidPage(
                                         
                                         column(6,
                                                selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
-                                                                                                                   Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag'))))),
+                                                                                                                   Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag')))))),
                              
-                             "I am above graph",
+                             "Place sample temp = f(t) here",
                              
-                             plotOutput("reduced_plot"),
+                             "Place blanc displacement here",
                              
                              
-                             "I am below graph",
+
+                             fluidRow(
+                               column(6,plotOutput("window_plot")),
+                               column(6,plotOutput("density_plot"))
+                             ),
+
+
+                             
+                             "I am below graphs",
                              fluidRow(
                                  downloadButton("dwnld",label = "Get plot"),
                                  sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 1280),
                                  sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 800)
                              )
-                )),
+                ),
                 tabPanel("Data", dataTableOutput("reduced_data_table")),
                 tabPanel("Data blanc", dataTableOutput("reduced_data_table_blanc")),
                 tabPanel("Sampled data",dataTableOutput("window_table")),
@@ -79,7 +100,6 @@ ui <- fluidPage(
 server = function(input, output){
 
 #create the dynamic dataset according to the chosen file
-    
 dataset <-reactive({ 
     inFile <- input$file_in
     sps_type <- input$sps_type
@@ -88,7 +108,6 @@ dataset <-reactive({
         return(NULL)
       }
       
-    
       #conditionnement de la lecture des données
       if (sps_type=="HPD5"){
         data <-  read.csv2(inFile$datapath,header=TRUE, sep=";")
@@ -111,16 +130,22 @@ dataset <-reactive({
         
       }
       
-
       data[] <- sapply(data, gsub, pattern = ",", replacement= ".")
       data[] <- sapply(data, as.numeric)
       
       data$pression <- data$AV.Force/(pi*(diam_ech/(10*2))^2)
+      
+      
+      
+      
+      
+      
+      
+      
+      
       return(data)
     })  
 
-
-    
 datablc<-reactive({
 
   blcFile <- input$blanc_in
@@ -317,18 +342,38 @@ window_data <- eventReactive(input$update_wt, {
      })
      
      
-     output$reduced_plot <- renderPlot({
+     output$window_plot <- renderPlot({
        
          win_data <- window_data() 
          g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD)) + geom_line()
+         g <- g + ggtitle("Densification speed (s-1)")
          print(g)
          
          })
      
-     # output$plot.ui <- renderUI({
-     #     plotOutput("reduced_plot", width="100%")
-     # })
+     output$density_plot <- renderPlot({
+       
+       densityplot_data <- window_data() 
+
+       g <- ggplot(densityplot_data, aes(AV.Pyrometer, reldensity))
+       g <- g +geom_line()
+
+       g <- g + ggtitle("Evolution of relative density")
+       g <- g + xlab("Temperature (°C)") + ylab("Relative density (%)")
+       g
+       
+       print(g)
+       
+     })
+     #plot évolution de la densité relative
+     # p3 <- ggplot(data, aes(AV.Pyrometer, reldensity))
+     # p3 <- p3 +geom_line()
+     # p3 <- p3 + scale_y_continuous(labels = percent)
+     # p3 <- p3 + ggtitle("Evolution of relative density")
+     # p3 <- p3 + xlab("Temperature (°C)") + ylab("Relative density (%)")
+     # p3
      
+
      output$dwnld <- downloadHandler(
          filename = function() {
              "Plot.pdf" 
