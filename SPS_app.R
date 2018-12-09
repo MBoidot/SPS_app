@@ -7,6 +7,7 @@ library(reshape2)
 library(viridis)
 library(zoo)
 library(lubridate)
+library(ggigraph)
 
 theme_set(theme_bw(10))
 theme_update(panel.grid.major=element_blank(),
@@ -54,7 +55,7 @@ ui <- fluidPage(
                                       column(3,numericInput("mpoudre", h5("Powder mass (g)"), value = 1))),
 
                              column(12,
-                                      sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(450, 1500), width = '100%')),
+                                      sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(20, 2000), width = '100%')),
                                       
                                
                                  column(12, h3("Graph settings"),
@@ -67,10 +68,10 @@ ui <- fluidPage(
                                                selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
                                                                                                                    Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag')))))),
                              
-                             "Place sample temp = f(t) here",
+                             fluidRow(column(12,plotOutput("avtemp_plot"))),
                              
                              "Place blanc displacement here",
-                             
+                             fluidRow(column(12,plotOutput("blancdisp_plot"))),
                              
 
                              fluidRow(
@@ -134,15 +135,7 @@ dataset <-reactive({
       data[] <- sapply(data, as.numeric)
       
       data$pression <- data$AV.Force/(pi*(diam_ech/(10*2))^2)
-      
-      
-      
-      
-      
-      
-      
-      
-      
+      data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
       return(data)
     })  
 
@@ -177,6 +170,8 @@ datablc<-reactive({
   
   data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
   data2[] <- sapply(data2, as.numeric)
+  
+  data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
   
   return(data2)
   
@@ -238,10 +233,6 @@ window_data <- eventReactive(input$update_wt, {
     data2 <- data2[data2$AV.Pyrometer<tmax,]
   }
   
-  #d?placement relatifs (blanc et ech)
-  data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
-  data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
-  
   #fit avec polynome deg 2 deplacement du blanc
   pred <- data.frame(AV.Pyrometer = data$AV.Pyrometer)
   model_blanc_displacement <- lm(reldisp ~ poly(AV.Pyrometer,2), data=data2)
@@ -250,7 +241,6 @@ window_data <- eventReactive(input$update_wt, {
   
   #d?placement corrig?
   data$dplcorr <- data$reldisp - data$dplblanc
-  
   
   #hauteur finale
   hfin <- mpoudre/(((pi*(Dech/20)^2))*dmes)
@@ -341,6 +331,30 @@ window_data <- eventReactive(input$update_wt, {
        return(str_col_palette)  
      })
      
+     output$avtemp_plot <- renderPlot({
+       data <- dataset()
+       g <- ggplot(data, aes(No., AV.Pyrometer))
+       g <- g + geom_line_interactive()
+       g <- g + ggtitle("Densification speed (s-1)")
+       
+       print(g)
+       
+     })
+     
+     
+     output$blancdisp_plot <- renderPlot({
+       data <- dataset()
+       data2 <- datablc()
+       win_data <- window_data() 
+       g <- ggplot(data2, aes(AV.Pyrometer, reldisp))
+       g <- g + geom_line()
+       g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc))
+       g <- g + ggtitle("Densification speed (s-1)")
+       
+       print(g)
+       
+     })
+     
      
      output$window_plot <- renderPlot({
        
@@ -352,27 +366,16 @@ window_data <- eventReactive(input$update_wt, {
          })
      
      output$density_plot <- renderPlot({
-       
-       densityplot_data <- window_data() 
-
+       densityplot_data <- window_data()
        g <- ggplot(densityplot_data, aes(AV.Pyrometer, reldensity))
        g <- g +geom_line()
 
        g <- g + ggtitle("Evolution of relative density")
        g <- g + xlab("Temperature (°C)") + ylab("Relative density (%)")
        g
-       
        print(g)
        
      })
-     #plot évolution de la densité relative
-     # p3 <- ggplot(data, aes(AV.Pyrometer, reldensity))
-     # p3 <- p3 +geom_line()
-     # p3 <- p3 + scale_y_continuous(labels = percent)
-     # p3 <- p3 + ggtitle("Evolution of relative density")
-     # p3 <- p3 + xlab("Temperature (°C)") + ylab("Relative density (%)")
-     # p3
-     
 
      output$dwnld <- downloadHandler(
          filename = function() {

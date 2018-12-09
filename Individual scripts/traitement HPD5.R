@@ -20,8 +20,8 @@ theme_update(panel.grid.major=element_blank(),
              strip.text.y=element_text(size=14,face="bold"))
 
 #wd <- "S:\\380-Mat?riaux\\380.225-CERAMIQUES\\380.225.05-CERAPRINT\\07_TECHNIQUE\\Fichiers SPS HPD5"
-wd <- "C:\\Users\\mathi\\Desktop\\CERAPRINT"
-setwd(wd)
+#wd <- "C:\\Users\\mathi\\Desktop\\CERAPRINT"
+#setwd(wd)
 
 #d?finition des param?tres de l'?chantillon, r?gulation et outillages
 
@@ -58,6 +58,9 @@ data2[] <- sapply(data2, as.numeric)
 
 data$pression <- data$AV.Force/(pi*(Dech/(10*2))^2)
 
+p3 <- ggplot(data, aes(No., AV.Pyrometer))
+p3 <- p3+geom_line()
+p3
 #__________________________________________________________
 #subset sur la plage de donn?es choisie pour data et data2
 #valeurs inf ? Tmin
@@ -139,4 +142,5 @@ p1
 p2 <- ggplot(data_ech, aes(AV.Pyrometer, DDDTsurD))
 p2 <- p2+geom_line()
 p2
+
 
