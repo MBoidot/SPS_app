@@ -7,7 +7,8 @@ library(reshape2)
 library(viridis)
 library(zoo)
 library(lubridate)
-library(ggigraph)
+library(plotly)
+
 
 theme_set(theme_bw(10))
 theme_update(panel.grid.major=element_blank(),
@@ -67,21 +68,19 @@ ui <- fluidPage(
                                         column(6,
                                                selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
                                                                                                                    Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag')))))),
-                             
-                             fluidRow(column(12,plotOutput("avtemp_plot"))),
-                             
-                             "Place blanc displacement here",
-                             fluidRow(column(12,plotOutput("blancdisp_plot"))),
-                             
 
-                             fluidRow(
-                               column(6,plotOutput("window_plot")),
-                               column(6,plotOutput("density_plot"))
-                             ),
+                             column(12,
+                                    column(8,
+                                           plotlyOutput("avtemp_plot"),
+                                           plotOutput("blancdisp_plot"),
+                                           plotOutput("window_plot"),
+                                           plotOutput("density_plot")
+                                           ),
+                                    column(4,
+                                           verbatimTextOutput("brush"))
+                                    ),
+                                    
 
-
-                             
-                             "I am below graphs",
                              fluidRow(
                                  downloadButton("dwnld",label = "Get plot"),
                                  sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 1280),
@@ -330,17 +329,28 @@ window_data <- eventReactive(input$update_wt, {
        
        return(str_col_palette)  
      })
-     
-     output$avtemp_plot <- renderPlot({
+
+     output$avtemp_plot <- renderPlotly({
        data <- dataset()
-       g <- ggplot(data, aes(No., AV.Pyrometer))
-       g <- g + geom_line_interactive()
-       g <- g + ggtitle("Densification speed (s-1)")
-       
+       p <- ggplot(data, aes(No., AV.Pyrometer,key=No.))
+       p <- p + geom_point()
+       p <- p + ggtitle("Measured temperature versus time")
+       p <- p + xlab("Time (s)") + ylab("Temperature (°C)")
+       g <- ggplotly(p) 
+       g <-layout(g,dragmode = "select")
+
        print(g)
        
      })
      
+
+
+     output$brush <- renderPrint({
+       d <- event_data("plotly_selected")
+       if (is.null(d)) "Click and drag events (i.e., select/lasso) appear here (double-click to clear)" else d
+     })
+     
+
      
      output$blancdisp_plot <- renderPlot({
        data <- dataset()
@@ -349,8 +359,9 @@ window_data <- eventReactive(input$update_wt, {
        g <- ggplot(data2, aes(AV.Pyrometer, reldisp))
        g <- g + geom_line()
        g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc))
-       g <- g + ggtitle("Densification speed (s-1)")
-       
+       g <- g + xlab("Temperature (°C)") + ylab("Relative blanc displacement (mm)")
+       g <- g + ggtitle("Blanc relative displacement and model")
+
        print(g)
        
      })
@@ -360,7 +371,10 @@ window_data <- eventReactive(input$update_wt, {
        
          win_data <- window_data() 
          g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD)) + geom_line()
-         g <- g + ggtitle("Densification speed (s-1)")
+         g <- g + xlab("Temperature (°C)") + ylab(expression(1/D. ~ partialdiff ~ D / partialdiff ~t))
+         g <- g + ggtitle(expression(bold("Densification speed (" ~ s^{-1} ~ ")")))
+         #g <- g + ggtitle(bquote('Densification speed ('~s^-1*')'))
+
          print(g)
          
          })
@@ -369,8 +383,7 @@ window_data <- eventReactive(input$update_wt, {
        densityplot_data <- window_data()
        g <- ggplot(densityplot_data, aes(AV.Pyrometer, reldensity))
        g <- g +geom_line()
-
-       g <- g + ggtitle("Evolution of relative density")
+       g <- g + ggtitle(expression(bold("Evolution of relative density")))
        g <- g + xlab("Temperature (°C)") + ylab("Relative density (%)")
        g
        print(g)
