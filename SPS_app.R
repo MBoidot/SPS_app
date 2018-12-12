@@ -11,8 +11,8 @@ library(plotly)
 
 
 theme_set(theme_bw(10))
-theme_update(panel.grid.major=element_blank(),
-             panel.grid.minor=element_blank(),
+theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
+             panel.grid.minor=element_line(colour="#c5c5c5", size=0.5),
              legend.title=element_text(size=18),
              axis.title.x=element_text(size=20),
              axis.title.y=element_text(size=20,angle=90,vjust=1.5),
@@ -22,6 +22,7 @@ theme_update(panel.grid.major=element_blank(),
              plot.title=element_text(size=25, face="bold",vjust=0.5),
              strip.text.x=element_text(size=14,face="bold"),
              strip.text.y=element_text(size=14,face="bold"))
+
 
 
 ui <- fluidPage(
@@ -89,7 +90,7 @@ ui <- fluidPage(
                 ),
                 tabPanel("Data", dataTableOutput("reduced_data_table")),
                 tabPanel("Data blanc", dataTableOutput("reduced_data_table_blanc")),
-                tabPanel("Sampled data",dataTableOutput("window_table")),
+                tabPanel("Sampled data",dataTableOutput("window_table"),downloadButton("downloadwindowtable", "Download")),
                 tabPanel("Help",htmlOutput("helptxt"))
             )
         )
@@ -270,6 +271,17 @@ window_data <- eventReactive(input$update_wt, {
          head(dataset(),20)
      })
      
+     output$downloadwindowtable <- downloadHandler(
+       filename = function() {
+         paste('window_table', '.csv', sep=';')
+       },
+       content = function(file) {
+         df1 <- window_data()
+         write.csv(df1, file)
+       }
+     )
+     
+     
      output$reduced_data_table_blanc <- renderDataTable({
        head(datablc(),20)
      })
@@ -333,9 +345,11 @@ window_data <- eventReactive(input$update_wt, {
      output$avtemp_plot <- renderPlotly({
        data <- dataset()
        p <- ggplot(data, aes(No., AV.Pyrometer,key=No.))
-       p <- p + geom_point()
+       p <- p + geom_line()
+       p <- p + geom_point(size=0.2)
        p <- p + ggtitle("Measured temperature versus time")
        p <- p + xlab("Time (s)") + ylab("Temperature (°C)")
+       p <- p + scale_y_continuous(breaks = seq(0, 2500, 100))
        g <- ggplotly(p) 
        g <-layout(g,dragmode = "select")
 
@@ -344,13 +358,11 @@ window_data <- eventReactive(input$update_wt, {
      })
      
 
-
      output$brush <- renderPrint({
        d <- event_data("plotly_selected")
        if (is.null(d)) "Click and drag events (i.e., select/lasso) appear here (double-click to clear)" else d
      })
      
-
      
      output$blancdisp_plot <- renderPlot({
        data <- dataset()
@@ -370,10 +382,12 @@ window_data <- eventReactive(input$update_wt, {
      output$window_plot <- renderPlot({
        
          win_data <- window_data() 
-         g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD)) + geom_line()
+         g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD))
+         g <- g + geom_line()
+         g <- g + geom_point(size=3,alpha=0.5)
+         g <- g + geom_smooth(se = FALSE,span = 0.2)
          g <- g + xlab("Temperature (°C)") + ylab(expression(1/D. ~ partialdiff ~ D / partialdiff ~t))
-         g <- g + ggtitle(expression(bold("Densification speed (" ~ s^{-1} ~ ")")))
-         #g <- g + ggtitle(bquote('Densification speed ('~s^-1*')'))
+         g <- g + ggtitle(expression(bold("Densification rate (" ~ s^{-1} ~ ")")))
 
          print(g)
          
@@ -385,7 +399,7 @@ window_data <- eventReactive(input$update_wt, {
        g <- g +geom_line()
        g <- g + ggtitle(expression(bold("Evolution of relative density")))
        g <- g + xlab("Temperature (°C)") + ylab("Relative density (%)")
-       g
+
        print(g)
        
      })
@@ -399,8 +413,19 @@ window_data <- eventReactive(input$update_wt, {
          }
      )
 
-     htext <- rep(as.list("Lorem ipsum dolor sit amet","je suis le second paragraphe","et ainsi de suite"),5)
-     output$helptxt <- renderUI(lapply(htext,tags$p))
+     htext <- div(
+       h1("reste à coder :"),
+       br(),
+       "Interface : réarrangement des boutons dans l'UI au début",
+       br(),
+       "Suppression des titres des graphes et intégration en tant qu'éléments HTML",
+       br(),
+       "boutons de téléchargement des graphes individuels et des tables de données",
+       br(),
+       "intégration d'un graphe de résumé complet des données avec facet grid et gestion couleurs alpha etc."
+       )
+     
+     output$helptxt <- renderUI(htext)
 }
 
 shinyApp(ui = ui, server = server)
