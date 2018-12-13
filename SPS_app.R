@@ -55,10 +55,7 @@ ui <- fluidPage(
 
                              
                                  # column(12, h3("Graph settings"),
-                                 #        column(6,
-                                 #               sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05),
-                                 #               sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)
-                                 #               ),
+                                 #        
                                  #        
                                  #        column(6,
                                  #               selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
@@ -67,32 +64,49 @@ ui <- fluidPage(
 
                              column(12,
                                     column(8,
+                                           hr(),
                                            h2("Recorded temperature"),
                                            plotlyOutput("avtemp_plot"),
+                                           hr(),
                                            h2("Blanc relative displacement and model"),
                                            plotOutput("blancdisp_plot"),
+                                           hr(),
                                            h2("Densification rate"),
                                            plotOutput("window_plot"),
+                                           hr(),
                                            column(2,numericInput("sample_rate", "Sampling rate", value = 10)),
                                            column(3,sliderInput("smooth", "Smoothing", min=0, max=1, value=0.25)),
                                            column(4,
                                                   sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(750, 1134), width = '100%')),
                                            br(),
                                            br(),
-                                           column(2,actionButton("update_wt2", "Update Windowtest plot"))),
+                                           column(2,actionButton("update_wt2", "Update Windowtest plot")),
+                                           
+                                           column(12,
+                                                  hr(),
+                                                  h3("Output Options"),
+                                                  
+                                                  column(3,sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 1280)),
+                                                  column(3,sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 800)),
+                                                  column(2,sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05)),
+                                                  column(2,sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)),
+                                                  br(),
+                                                  br(),
+                                                  column(2,downloadButton("dwnld_window",label = "Get plot"))),
+
+                                                  
+                                           column(8,h2("Density evolution"),plotOutput("density_plot"))),
                                     column(4,
+                                           hr(),
                                            verbatimTextOutput("brush"))
-                             ),
-                                    column(8,h2("Density evolution"),
-                                           plotOutput("density_plot"))),
+                                    
+                                    )
+                                    
+                                    )
                                     
                                     
 
-                             fluidRow(
-                                 downloadButton("dwnld",label = "Get plot"),
-                                 sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 1280),
-                                 sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 800)
-                             )
+                             
                 ),
                 tabPanel("Data", dataTableOutput("reduced_data_table")),
                 tabPanel("Data blanc", dataTableOutput("reduced_data_table_blanc")),
