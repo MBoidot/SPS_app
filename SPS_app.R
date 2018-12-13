@@ -33,7 +33,7 @@ ui <- fluidPage(
         sidebarPanel(width = 2,
             fileInput("file_in","Data file", multiple = FALSE),
             fileInput("blanc_in","Blanc file", multiple = FALSE),
-            numericInput("sample_rate", h5("Sampling rate"), value = 10),
+
             actionButton("update_wt", "Update Windowtest plot"),
             selectInput("sps_type", "Choose SPS device:", choices =  list(FCT = c(`FCT HPD 25` = 'HPD25', `FCT HPD 5` = 'HPD5'),
                 Sumitomo = c(`Dr Sinter 2080` = 'DS2080')))
@@ -46,40 +46,46 @@ ui <- fluidPage(
                              fluidRow(
                                column(12,
                                       h3("Material inputs"),
-                                      
                                       column(3,
-                                          numericInput("dmes", h5("Measured density (g/cm3)"), value = 1,width = '100%')),
-                                      column(3,
-                                            numericInput("dth", h5("Theoretical density (g/cm3)"), value = 1)),
-                                      column(3,
-                                             numericInput("Dech", h5("Diameter (mm)"), 20, min = 10, max = 80)),
-                                      
-                                      column(3,numericInput("mpoudre", h5("Powder mass (g)"), value = 1))),
+                                          numericInput("dmes", "Measured density (g/cm3)", value = 1,width = '100%'),
+                                          numericInput("dth", "Theoretical density (g/cm3)", value = 1)),
+                                      column(3,numericInput("Dech", "Diameter (mm)", 20, min = 10, max = 80),
+                                          numericInput("mpoudre", "Powder mass (g)", value = 1))
+                                      ),
 
-                             column(12,
-                                      sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(20, 2000), width = '100%')),
-                                      
-                               
-                                 column(12, h3("Graph settings"),
-                                        column(6,
-                                               sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05),
-                                               sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)
-                                               ),
-                                        
-                                        column(6,
-                                               selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
-                                                                                                                   Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag')))))),
+                             
+                                 # column(12, h3("Graph settings"),
+                                 #        column(6,
+                                 #               sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05),
+                                 #               sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)
+                                 #               ),
+                                 #        
+                                 #        column(6,
+                                 #               selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
+                                 #                                                                                   Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag')))))
+                             
 
                              column(12,
                                     column(8,
+                                           h2("Recorded temperature"),
                                            plotlyOutput("avtemp_plot"),
+                                           h2("Blanc relative displacement and model"),
                                            plotOutput("blancdisp_plot"),
+                                           h2("Densification rate"),
                                            plotOutput("window_plot"),
-                                           plotOutput("density_plot")
-                                           ),
+                                           column(2,numericInput("sample_rate", "Sampling rate", value = 10)),
+                                           column(3,sliderInput("smooth", "Smoothing", min=0, max=1, value=0.25)),
+                                           column(4,
+                                                  sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(750, 1134), width = '100%')),
+                                           br(),
+                                           br(),
+                                           column(2,actionButton("update_wt2", "Update Windowtest plot"))),
                                     column(4,
                                            verbatimTextOutput("brush"))
-                                    ),
+                             ),
+                                    column(8,h2("Density evolution"),
+                                           plotOutput("density_plot"))),
+                                    
                                     
 
                              fluidRow(
@@ -180,7 +186,7 @@ datablc<-reactive({
 #need to create the appropriate dataset to plot window test graph
 
 
-window_data <- eventReactive(input$update_wt, {
+window_data <- eventReactive(input$update_wt | input$update_wt2, {
 
   #import all inputs
   sps_type <- input$sps_type
@@ -347,7 +353,6 @@ window_data <- eventReactive(input$update_wt, {
        p <- ggplot(data, aes(No., AV.Pyrometer,key=No.))
        p <- p + geom_line()
        p <- p + geom_point(size=0.2)
-       p <- p + ggtitle("Measured temperature versus time")
        p <- p + xlab("Time (s)") + ylab("Temperature (°C)")
        p <- p + scale_y_continuous(breaks = seq(0, 2500, 100))
        g <- ggplotly(p) 
@@ -372,22 +377,20 @@ window_data <- eventReactive(input$update_wt, {
        g <- g + geom_line()
        g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc))
        g <- g + xlab("Temperature (°C)") + ylab("Relative blanc displacement (mm)")
-       g <- g + ggtitle("Blanc relative displacement and model")
+
 
        print(g)
        
      })
      
-     
      output$window_plot <- renderPlot({
-       
+
          win_data <- window_data() 
          g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD))
          g <- g + geom_line()
          g <- g + geom_point(size=3,alpha=0.5)
-         g <- g + geom_smooth(se = FALSE,span = 0.2)
+         g <- g + geom_smooth(se = FALSE,span = input$smooth)
          g <- g + xlab("Temperature (°C)") + ylab(expression(1/D. ~ partialdiff ~ D / partialdiff ~t))
-         g <- g + ggtitle(expression(bold("Densification rate (" ~ s^{-1} ~ ")")))
 
          print(g)
          
@@ -397,7 +400,6 @@ window_data <- eventReactive(input$update_wt, {
        densityplot_data <- window_data()
        g <- ggplot(densityplot_data, aes(AV.Pyrometer, reldensity))
        g <- g +geom_line()
-       g <- g + ggtitle(expression(bold("Evolution of relative density")))
        g <- g + xlab("Temperature (°C)") + ylab("Relative density (%)")
 
        print(g)
