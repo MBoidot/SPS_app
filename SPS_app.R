@@ -11,8 +11,8 @@ library(plotly)
 
 
 theme_set(theme_bw(10))
-theme_update(panel.grid.major=element_blank(),
-             panel.grid.minor=element_blank(),
+theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
+             panel.grid.minor=element_line(colour="#c5c5c5", size=0.5),
              legend.title=element_text(size=18),
              axis.title.x=element_text(size=20),
              axis.title.y=element_text(size=20,angle=90,vjust=1.5),
@@ -24,16 +24,19 @@ theme_update(panel.grid.major=element_blank(),
              strip.text.y=element_text(size=14,face="bold"))
 
 
+
 ui <- fluidPage(
     
     pageWithSidebar(
-        titlePanel("HPD5 and HPD25 file treatment"),
+        headerPanel("HPD5 and HPD25 file treatment"),
+        
 
         sidebarPanel(width = 2,
             fileInput("file_in","Data file", multiple = FALSE),
             fileInput("blanc_in","Blanc file", multiple = FALSE),
-            numericInput("sample_rate", h5("Sampling rate"), value = 10),
             actionButton("update_wt", "Update Windowtest plot"),
+            br(),
+            br(),
             selectInput("sps_type", "Choose SPS device:", choices =  list(FCT = c(`FCT HPD 25` = 'HPD25', `FCT HPD 5` = 'HPD5'),
                 Sumitomo = c(`Dr Sinter 2080` = 'DS2080')))
             
@@ -43,53 +46,65 @@ ui <- fluidPage(
             tabsetPanel(
                     tabPanel("Plot",
                              fluidRow(
-                               column(12,
-                                      h3("Material inputs"),
-                                      
-                                      column(3,
-                                          numericInput("dmes", h5("Measured density (g/cm3)"), value = 1,width = '100%')),
-                                      column(3,
-                                            numericInput("dth", h5("Theoretical density (g/cm3)"), value = 1)),
-                                      column(3,
-                                             numericInput("Dech", h5("Diameter (mm)"), 20, min = 10, max = 80)),
-                                      
-                                      column(3,numericInput("mpoudre", h5("Powder mass (g)"), value = 1))),
-
-                             column(12,
-                                      sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(20, 2000), width = '100%')),
-                                      
                                
-                                 column(12, h3("Graph settings"),
-                                        column(6,
-                                               sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05),
-                                               sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)
-                                               ),
-                                        
-                                        column(6,
-                                               selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
-                                                                                                                   Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag')))))),
+                                 column(12,
+                                      h3("Material inputs"),
+                                      column(3,
+                                          numericInput("dmes", "Measured density (g/cm3)", value = 1,width = '100%'),
+                                          numericInput("dth", "Theoretical density (g/cm3)", value = 1)),
+                                      column(3,numericInput("Dech", "Diameter (mm)", 20, min = 10, max = 80),
+                                          numericInput("mpoudre", "Powder mass (g)", value = 1))
+                                      ),
 
                              column(12,
                                     column(8,
+                                           hr(),
+                                           h2("Recorded temperature"),
                                            plotlyOutput("avtemp_plot"),
+                                           hr(),
+                                           h2("Blanc relative displacement and model"),
                                            plotOutput("blancdisp_plot"),
+                                           hr(),
+                                           h2("Densification rate"),
                                            plotOutput("window_plot"),
-                                           plotOutput("density_plot")
-                                           ),
+                                           hr(),
+                                           column(2,numericInput("sample_rate", "Sampling rate", value = 10)),
+                                           column(3,sliderInput("smooth", "Smoothing", min=0, max=1, value=0.25)),
+                                           column(4,
+                                                  sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(750, 1134), width = '100%')),
+                                           br(),
+                                           br(),
+                                           column(2,actionButton("update_wt2", "Update Windowtest plot")),
+                                           
+                                           column(12,
+                                                  hr(),
+                                                  h3("Output Options"),
+                                                  
+                                                  column(3,sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 1280)),
+                                                  column(3,sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 800)),
+                                                  column(2,sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05)),
+                                                  column(2,sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)),
+                                                  br(),
+                                                  br(),
+                                                  column(2,downloadButton("dwnld_window",label = "Get plot"))),
+
+                                                  
+                                           column(8,h2("Density evolution"),plotOutput("density_plot"))),
                                     column(4,
+                                           hr(),
                                            verbatimTextOutput("brush"))
-                                    ),
+                                    
+                                    )
+                                    
+                                    )
+                                    
                                     
 
-                             fluidRow(
-                                 downloadButton("dwnld",label = "Get plot"),
-                                 sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 1280),
-                                 sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 800)
-                             )
+                             
                 ),
                 tabPanel("Data", dataTableOutput("reduced_data_table")),
                 tabPanel("Data blanc", dataTableOutput("reduced_data_table_blanc")),
-                tabPanel("Sampled data",dataTableOutput("window_table")),
+                tabPanel("Sampled data",dataTableOutput("window_table"),downloadButton("downloadwindowtable", "Download")),
                 tabPanel("Help",htmlOutput("helptxt"))
             )
         )
@@ -179,7 +194,7 @@ datablc<-reactive({
 #need to create the appropriate dataset to plot window test graph
 
 
-window_data <- eventReactive(input$update_wt, {
+window_data <- eventReactive(input$update_wt | input$update_wt2, {
 
   #import all inputs
   sps_type <- input$sps_type
@@ -270,11 +285,23 @@ window_data <- eventReactive(input$update_wt, {
          head(dataset(),20)
      })
      
+     output$downloadwindowtable <- downloadHandler(
+       filename = function() {
+         paste('window_table', '.csv', sep=';')
+       },
+       content = function(file) {
+         df1 <- window_data()
+         write.csv(df1, file)
+       }
+     )
+     
+     
      output$reduced_data_table_blanc <- renderDataTable({
        head(datablc(),20)
      })
      
      output$window_table <- renderDataTable({
+       req(input$blanc_in)
        window_data()
      })
      
@@ -332,60 +359,63 @@ window_data <- eventReactive(input$update_wt, {
 
      output$avtemp_plot <- renderPlotly({
        data <- dataset()
+       req(input$file_in)
+
        p <- ggplot(data, aes(No., AV.Pyrometer,key=No.))
-       p <- p + geom_point()
-       p <- p + ggtitle("Measured temperature versus time")
+       p <- p + geom_line()
+       p <- p + geom_point(size=0.2)
        p <- p + xlab("Time (s)") + ylab("Temperature (°C)")
+       p <- p + scale_y_continuous(breaks = seq(0, 2500, 100))
        g <- ggplotly(p) 
        g <-layout(g,dragmode = "select")
 
-       print(g)
+         print(g)
        
      })
      
-
 
      output$brush <- renderPrint({
        d <- event_data("plotly_selected")
        if (is.null(d)) "Click and drag events (i.e., select/lasso) appear here (double-click to clear)" else d
      })
      
-
      
      output$blancdisp_plot <- renderPlot({
+       req(input$blanc_in)
        data <- dataset()
        data2 <- datablc()
-       win_data <- window_data() 
+       win_data <- window_data()
+
        g <- ggplot(data2, aes(AV.Pyrometer, reldisp))
        g <- g + geom_line()
        g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc))
        g <- g + xlab("Temperature (°C)") + ylab("Relative blanc displacement (mm)")
-       g <- g + ggtitle("Blanc relative displacement and model")
+
 
        print(g)
        
      })
      
-     
      output$window_plot <- renderPlot({
-       
+          req(input$blanc_in)
          win_data <- window_data() 
-         g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD)) + geom_line()
+         g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD))
+         g <- g + geom_line()
+         g <- g + geom_point(size=3,alpha=0.5)
+         g <- g + geom_smooth(se = FALSE,span = input$smooth)
          g <- g + xlab("Temperature (°C)") + ylab(expression(1/D. ~ partialdiff ~ D / partialdiff ~t))
-         g <- g + ggtitle(expression(bold("Densification speed (" ~ s^{-1} ~ ")")))
-         #g <- g + ggtitle(bquote('Densification speed ('~s^-1*')'))
 
          print(g)
          
          })
      
      output$density_plot <- renderPlot({
+       req(input$blanc_in)
        densityplot_data <- window_data()
        g <- ggplot(densityplot_data, aes(AV.Pyrometer, reldensity))
        g <- g +geom_line()
-       g <- g + ggtitle(expression(bold("Evolution of relative density")))
        g <- g + xlab("Temperature (°C)") + ylab("Relative density (%)")
-       g
+
        print(g)
        
      })
@@ -399,8 +429,19 @@ window_data <- eventReactive(input$update_wt, {
          }
      )
 
-     htext <- rep(as.list("Lorem ipsum dolor sit amet","je suis le second paragraphe","et ainsi de suite"),5)
-     output$helptxt <- renderUI(lapply(htext,tags$p))
+     htext <- div(
+       h1("reste à coder :"),
+       br(),
+       "Interface : réarrangement des boutons dans l'UI au début",
+       br(),
+       "Suppression des titres des graphes et intégration en tant qu'éléments HTML",
+       br(),
+       "boutons de téléchargement des graphes individuels et des tables de données",
+       br(),
+       "intégration d'un graphe de résumé complet des données avec facet grid et gestion couleurs alpha etc."
+       )
+     
+     output$helptxt <- renderUI(htext)
 }
 
 shinyApp(ui = ui, server = server)
