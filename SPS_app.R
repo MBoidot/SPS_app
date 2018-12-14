@@ -59,6 +59,7 @@ ui <- fluidPage(
                              column(12,
                                     column(8,
                                            hr(),
+                                           tableOutput("debug"),
                                            h2("Recorded temperature"),
                                            plotlyOutput("avtemp_plot"),
                                            hr(),
@@ -92,14 +93,11 @@ ui <- fluidPage(
                                            column(8,h2("Density evolution"),plotOutput("density_plot"))),
                                     column(4,
                                            hr(),
+                                          
                                            verbatimTextOutput("brush"))
                                     
                                     )
-                                    
                                     )
-                                    
-                                    
-
                              
                 ),
                 tabPanel("Data", dataTableOutput("reduced_data_table")),
@@ -113,6 +111,8 @@ ui <- fluidPage(
 
 
 server = function(input, output){
+
+
 
 #create the dynamic dataset according to the chosen file
 dataset <-reactive({ 
@@ -132,9 +132,14 @@ dataset <-reactive({
         
         #on garde les colonnes utiles
         data <- data[,c(1,5,6,12,14,16,17)]
+        data[] <- sapply(data, gsub, pattern = ",", replacement= ".")
+        data[] <- sapply(data, as.numeric)
         
+        data$pression <- data$AV.Force/(pi*(diam_ech/(10*2))^2)
+        data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
+
         
-      } else {
+      } else if (sps_type=="HPD25"){
         data <-  read.csv2(inFile$datapath,header=TRUE, sep=",")
         
         #retrait de la premiere ligne d'unites
@@ -142,16 +147,33 @@ dataset <-reactive({
         
         #on garde les colonnes utiles
         data <- data[,c(1,5,6,7,10,12,17,18)]
+        data[] <- sapply(data, gsub, pattern = ",", replacement= ".")
+        data[] <- sapply(data, as.numeric)
         
+        data$pression <- data$AV.Force/(pi*(diam_ech/(10*2))^2)
+        data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
+
+      } else {
+        #cas Dr sinter
+
+        data <- read_excel(inFile$datapath, 1)
+        
+        if (data[1,1] == data[2,1]){
+          time_interval <- 0.5
+        } else{
+          time_interval <- 1
+        }
+        
+        data$No. <- seq(0,nrow(data)-1)*time_interval
+        
+        data[,c(1,2,3,4,8,9)] <- NULL
+        
+        names(data) <- c("AV.Pyrometer", "pression", "AV.Abs..Piston.T","No.")
+        data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
       }
-      
-      data[] <- sapply(data, gsub, pattern = ",", replacement= ".")
-      data[] <- sapply(data, as.numeric)
-      
-      data$pression <- data$AV.Force/(pi*(diam_ech/(10*2))^2)
-      data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
-      return(data)
+    return(data)
     })  
+
 
 datablc<-reactive({
 
@@ -170,9 +192,12 @@ datablc<-reactive({
     
     #on garde les colonnes utiles
     data2 <- data2[,c(1,5,6,12,14,16,17)]
+    data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
+    data2[] <- sapply(data2, as.numeric)
     
+    data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
     
-  } else {
+  } else if (sps_type=="HPD25"){
     data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=",")
     
     #retrait de la premiere ligne d'unites
@@ -180,19 +205,40 @@ datablc<-reactive({
     
     #on garde les colonnes utiles
     data2 <- data2[,c(1,5,6,7,10,12,17,18)]
+    data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
+    data2[] <- sapply(data2, as.numeric)
+    
+    data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
+
+  } else {
+    #cas Dr Sinter
+
+    data2 <- read_excel(blcFile$datapath, 1)
+    
+    if (data2[1,1] == data2[2,1]){
+      time_interval <- 0.5
+    } else{
+      time_interval <- 1
+    }
+    
+    data2$No. <- seq(0,nrow(data2)-1)*time_interval
+    
+    data2[,c(1,2,3,4,8,9)] <- NULL
+    
+    names(data2) <- c("AV.Pyrometer", "pression", "AV.Abs..Piston.T","No.")
+    data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
   }
-  
-  data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
-  data2[] <- sapply(data2, as.numeric)
-  
-  data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
-  
+
   return(data2)
   
 })
 
 #need to create the appropriate dataset to plot window test graph
-
+output$debug <- renderTable({
+  data2 <- datablc()
+  
+  return(head(data2))
+})
 
 window_data <- eventReactive(input$update_wt | input$update_wt2, {
 
@@ -207,9 +253,6 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
   data <- dataset()
   data2 <- datablc()
 
-  
-  data$pression <- data$AV.Force/(pi*(Dech/(10*2))^2)
-  
   #__________________________________________________________
   #subset sur la plage de donn?es choisie pour data et data2
   #valeurs inf ? Tmin
@@ -269,8 +312,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
   data$reldensity <- data$density/dth
   
   
-  #subset
-  
+  #Sampling
   data_ech <- data[data$No. %% input$sample_rate ==0,]
   
   #dérivée
@@ -294,7 +336,6 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
          write.csv(df1, file)
        }
      )
-     
      
      output$reduced_data_table_blanc <- renderDataTable({
        head(datablc(),20)
@@ -370,7 +411,6 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
        g <-layout(g,dragmode = "select")
 
          print(g)
-       
      })
      
 
@@ -391,9 +431,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
        g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc))
        g <- g + xlab("Temperature (°C)") + ylab("Relative blanc displacement (mm)")
 
-
        print(g)
-       
      })
      
      output$window_plot <- renderPlot({
@@ -431,10 +469,6 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
 
      htext <- div(
        h1("reste à coder :"),
-       br(),
-       "Interface : réarrangement des boutons dans l'UI au début",
-       br(),
-       "Suppression des titres des graphes et intégration en tant qu'éléments HTML",
        br(),
        "boutons de téléchargement des graphes individuels et des tables de données",
        br(),
