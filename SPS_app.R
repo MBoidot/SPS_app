@@ -28,13 +28,15 @@ theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
 ui <- fluidPage(
     
     pageWithSidebar(
-        titlePanel("HPD5 and HPD25 file treatment"),
+        headerPanel("HPD5 and HPD25 file treatment"),
+        
 
         sidebarPanel(width = 2,
             fileInput("file_in","Data file", multiple = FALSE),
             fileInput("blanc_in","Blanc file", multiple = FALSE),
-
             actionButton("update_wt", "Update Windowtest plot"),
+            br(),
+            br(),
             selectInput("sps_type", "Choose SPS device:", choices =  list(FCT = c(`FCT HPD 25` = 'HPD25', `FCT HPD 5` = 'HPD5'),
                 Sumitomo = c(`Dr Sinter 2080` = 'DS2080')))
             
@@ -44,7 +46,8 @@ ui <- fluidPage(
             tabsetPanel(
                     tabPanel("Plot",
                              fluidRow(
-                               column(12,
+                               
+                                 column(12,
                                       h3("Material inputs"),
                                       column(3,
                                           numericInput("dmes", "Measured density (g/cm3)", value = 1,width = '100%'),
@@ -52,15 +55,6 @@ ui <- fluidPage(
                                       column(3,numericInput("Dech", "Diameter (mm)", 20, min = 10, max = 80),
                                           numericInput("mpoudre", "Powder mass (g)", value = 1))
                                       ),
-
-                             
-                                 # column(12, h3("Graph settings"),
-                                 #        
-                                 #        
-                                 #        column(6,
-                                 #               selectInput("col_theme", "Choose a color palette:", choices =  list(Brewer = c(`Set1` = 'Br_S1', `Set2` = 'Br_S2', `Set3` = 'Br_S3', `Spectral` = 'Br_Spectral'),
-                                 #                                                                                   Viridis = c(`Viridis` = 'Vir_vir',`Plasma` = 'Vir_plas',`Magma` = 'Vir_mag')))))
-                             
 
                              column(12,
                                     column(8,
@@ -307,6 +301,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
      })
      
      output$window_table <- renderDataTable({
+       req(input$blanc_in)
        window_data()
      })
      
@@ -364,6 +359,8 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
 
      output$avtemp_plot <- renderPlotly({
        data <- dataset()
+       req(input$file_in)
+
        p <- ggplot(data, aes(No., AV.Pyrometer,key=No.))
        p <- p + geom_line()
        p <- p + geom_point(size=0.2)
@@ -372,7 +369,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
        g <- ggplotly(p) 
        g <-layout(g,dragmode = "select")
 
-       print(g)
+         print(g)
        
      })
      
@@ -384,9 +381,11 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
      
      
      output$blancdisp_plot <- renderPlot({
+       req(input$blanc_in)
        data <- dataset()
        data2 <- datablc()
-       win_data <- window_data() 
+       win_data <- window_data()
+
        g <- ggplot(data2, aes(AV.Pyrometer, reldisp))
        g <- g + geom_line()
        g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc))
@@ -398,7 +397,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
      })
      
      output$window_plot <- renderPlot({
-
+          req(input$blanc_in)
          win_data <- window_data() 
          g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD))
          g <- g + geom_line()
@@ -411,6 +410,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
          })
      
      output$density_plot <- renderPlot({
+       req(input$blanc_in)
        densityplot_data <- window_data()
        g <- ggplot(densityplot_data, aes(AV.Pyrometer, reldensity))
        g <- g +geom_line()
