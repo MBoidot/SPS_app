@@ -59,7 +59,6 @@ ui <- fluidPage(
                              column(12,
                                     column(8,
                                            hr(),
-                                           tableOutput("debug"),
                                            h2("Recorded temperature"),
                                            plotlyOutput("avtemp_plot"),
                                            hr(),
@@ -169,7 +168,7 @@ dataset <-reactive({
         data[,c(1,2,3,4,8,9)] <- NULL
         
         names(data) <- c("AV.Pyrometer", "pression", "AV.Abs..Piston.T","No.")
-        data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
+
       }
     return(data)
     })  
@@ -226,19 +225,13 @@ datablc<-reactive({
     data2[,c(1,2,3,4,8,9)] <- NULL
     
     names(data2) <- c("AV.Pyrometer", "pression", "AV.Abs..Piston.T","No.")
-    data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
-  }
 
+  }
+  data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
   return(data2)
   
 })
 
-#need to create the appropriate dataset to plot window test graph
-output$debug <- renderTable({
-  data2 <- datablc()
-  
-  return(head(data2))
-})
 
 window_data <- eventReactive(input$update_wt | input$update_wt2, {
 
@@ -290,6 +283,10 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
     data2 <- data2[data2$AV.Pyrometer<tmax,]
   }
   
+  
+  data$reldisp <- as.numeric(data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1])
+
+  
   #fit avec polynome deg 2 deplacement du blanc
   pred <- data.frame(AV.Pyrometer = data$AV.Pyrometer)
   model_blanc_displacement <- lm(reldisp ~ poly(AV.Pyrometer,2), data=data2)
@@ -300,10 +297,10 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
   data$dplcorr <- data$reldisp - data$dplblanc
   
   #hauteur finale
-  hfin <- mpoudre/(((pi*(Dech/20)^2))*dmes)
+  hfin <- as.numeric(mpoudre/(((pi*(Dech/20)^2))*dmes))
   
   #hauteur lit de poudre
-  data$hlitpoudre <- hfin + data[length(data$No.),"reldisp"] - data$reldisp
+  data$hlitpoudre <- hfin + as.numeric(data[length(data$No.),"reldisp"]) - data$reldisp
   
   #densit?
   data$density <- mpoudre/(((pi*(Dech/20)^2))*data$hlitpoudre)

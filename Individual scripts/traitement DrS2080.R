@@ -84,8 +84,6 @@ data2[,c(1,2,3,4,8,9)] <- NULL
 names(data2) <- c("AV.Pyrometer", "pression", "AV.Abs..Piston.T","No.")
 
 
-
-
 #__________________________________________________________
 #subset sur la plage de donn?es choisie pour data et data2
 #valeurs inf ? Tmin
@@ -122,6 +120,14 @@ if (data2$AV.Pyrometer[length(data2$AV.Pyrometer)-1] > data2$AV.Pyrometer[length
 } else {
   data2 <- data2[data2$AV.Pyrometer<tmax,]
 }
+
+print(nrow(data2))
+
+
+
+
+
+
 
 #déplacement relatifs (blanc et ech)
 data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
