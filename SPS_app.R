@@ -194,7 +194,7 @@ datablc<-reactive({
     data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
     data2[] <- sapply(data2, as.numeric)
     
-    data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
+    data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
     
   } else if (sps_type=="HPD25"){
     data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=",")
@@ -207,7 +207,7 @@ datablc<-reactive({
     data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
     data2[] <- sapply(data2, as.numeric)
     
-    data2$reldisp <- data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1]
+    data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
 
   } else {
     #cas Dr Sinter
@@ -225,9 +225,9 @@ datablc<-reactive({
     data2[,c(1,2,3,4,8,9)] <- NULL
     
     names(data2) <- c("AV.Pyrometer", "pression", "AV.Abs..Piston.T","No.")
-
+    data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
   }
-  data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
+  
   return(data2)
   
 })
@@ -285,7 +285,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
   
   
   data$reldisp <- as.numeric(data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1])
-
+  #data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
   
   #fit avec polynome deg 2 deplacement du blanc
   pred <- data.frame(AV.Pyrometer = data$AV.Pyrometer)
