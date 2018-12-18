@@ -28,7 +28,7 @@ theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
 ui <- fluidPage(
     
     pageWithSidebar(
-        headerPanel("HPD5 and HPD25 file treatment"),
+        headerPanel("SPS file treatment"),
         
 
         sidebarPanel(width = 2,
@@ -88,8 +88,8 @@ ui <- fluidPage(
                                                   br(),
                                                   column(2,downloadButton("dwnld_window",label = "Get plot"))),
 
-                                                  
-                                           column(8,h2("Density evolution"),plotOutput("density_plot"))),
+                                           hr(),       
+                                           column(12,h2("Density evolution"),plotOutput("density_plot"))),
                                     column(4,
                                            hr(),
                                           
@@ -124,7 +124,7 @@ dataset <-reactive({
       
       #conditionnement de la lecture des données
       if (sps_type=="HPD5"){
-        data <-  read.csv2(inFile$datapath,header=TRUE, sep=";")
+        data <-  read.csv2(inFile$datapath,header=TRUE, sep=";",fileEncoding="latin1")
         
         #retrait de la premiere ligne d'unites
         data <- data[-1,]
@@ -139,7 +139,7 @@ dataset <-reactive({
 
         
       } else if (sps_type=="HPD25"){
-        data <-  read.csv2(inFile$datapath,header=TRUE, sep=",")
+        data <-  read.csv2(inFile$datapath,header=TRUE, sep=",",fileEncoding="latin1")
         
         #retrait de la premiere ligne d'unites
         data <- data[-1,]
@@ -184,7 +184,7 @@ datablc<-reactive({
   }
   
   if (sps_type=="HPD5"){
-    data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=";")
+    data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=";",fileEncoding="latin1")
     
     #retrait de la premiere ligne d'unites
     data2 <- data2[-1,]
@@ -197,7 +197,7 @@ datablc<-reactive({
     data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
     
   } else if (sps_type=="HPD25"){
-    data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=",")
+    data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=",",fileEncoding="latin1")
     
     #retrait de la premiere ligne d'unites
     data2 <- data2[-1,]
@@ -469,7 +469,9 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
        br(),
        "boutons de téléchargement des graphes individuels et des tables de données",
        br(),
-       "intégration d'un graphe de résumé complet des données avec facet grid et gestion couleurs alpha etc."
+       "intégration d'un graphe de résumé complet des données avec facet grid et gestion couleurs alpha etc.",
+       br(),
+       "Implémentation de deux sliders pour les intervalles de temperatures. Un pour le modèle de déplacement sur le blanc, un pour le graphe de déplacement"
        )
      
      output$helptxt <- renderUI(htext)
