@@ -455,15 +455,25 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
        
      })
 
-     output$dwnld <- downloadHandler(
-         filename = function() {
-             "Plot.pdf" 
-         },
-         content=function(file){
-             file.copy("plot.pdf", file, overwrite=TRUE)
-         }
+     output$dwnld_window <- downloadHandler(
+       filename = function() { "densification rate.png" },
+       content = function(file) {
+    
+             win_data <- window_data()
+             hgt <-  input$Down_height/300
+             wdth <- input$Down_width/300
+             g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD))
+             g <- g + geom_line()
+             g <- g + geom_point(size=3,alpha=0.5)
+             g <- g + geom_smooth(se = FALSE,span = input$smooth)
+             g <- g + xlab("Temperature (°C)") + ylab(expression(1/D. ~ partialdiff ~ D / partialdiff ~t))
+         
+         
+         ggsave(file, plot = g, device = "png",width=wdth,height = hgt)
+       }
      )
-
+     
+     
      htext <- div(
        h1("reste à coder :"),
        br(),
