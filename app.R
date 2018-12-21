@@ -430,6 +430,7 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
              win_data <- window_data()
              hgt <-  input$Down_height/300
              wdth <- input$Down_width/300
+
              sze <- input$point_size
              apha <- input$point_alpha
              g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD))
