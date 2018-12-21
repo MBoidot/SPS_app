@@ -64,24 +64,27 @@ ui <- fluidPage(
                                            hr(),
                                            h2("Blanc relative displacement and model"),
                                            plotOutput("blancdisp_plot"),
-                                           hr(),
-                                           h2("Densification rate"),
-                                           plotOutput("window_plot"),
-                                           hr(),
-                                           column(2,numericInput("sample_rate", "Sampling rate", value = 10)),
-                                           column(3,sliderInput("smooth", "Smoothing", min=0, max=1, value=0.25)),
-                                           column(4,
-                                                  sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(750, 1134), width = '100%')),
-                                           br(),
-                                           br(),
-                                           column(2,actionButton("update_wt2", "Update Windowtest plot")),
                                            
+                                           
+                                           column(12, 
+                                                  hr(),
+                                                  h2("Densification rate"),
+                                                  plotOutput("window_plot"),
+                                                  hr(),
+                                                  column(2,numericInput("sample_rate", "Sampling rate", value = 10)),
+                                                  column(2,sliderInput("smooth", "Smoothing", min=0, max=1, value=0.2)),
+                                                  column(5,
+                                                         sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(750, 1134), width = '100%')),
+                                                  br(),
+                                                  br(),
+                                                  column(2,actionButton("update_wt2", "Update Windowtest plot"))),
+
                                            column(12,
                                                   hr(),
                                                   h3("Output Options"),
                                                   
-                                                  column(3,sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 1280)),
-                                                  column(3,sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 800)),
+                                                  column(3,sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 2000)),
+                                                  column(3,sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 1000)),
                                                   column(2,sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05)),
                                                   column(2,sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)),
                                                   br(),
@@ -102,6 +105,21 @@ ui <- fluidPage(
                 tabPanel("Data", dataTableOutput("reduced_data_table")),
                 tabPanel("Data blanc", dataTableOutput("reduced_data_table_blanc")),
                 tabPanel("Sampled data",dataTableOutput("window_table"),downloadButton("downloadwindowtable", "Download")),
+
+                tabPanel("Batch treatment",
+                         fluidRow(
+
+                           column(12,
+                                  h3("Densification rate plot comparison"),
+                                  fileInput("dens_rate_in","Data file", multiple = TRUE),
+                                  # 
+                                  # fileInput("dens_rate_in","Data files", multiple = TRUE,accept = ".csv"),
+                                  plotOutput("batch_plot"),
+                                  textOutput("batch_txt"),
+                                  dataTableOutput("batch_table")
+                                  )
+                              )
+                         ),
                 tabPanel("Help",htmlOutput("helptxt"))
             )
         )
@@ -233,7 +251,7 @@ datablc<-reactive({
 })
 
 
-window_data <- eventReactive(input$update_wt | input$update_wt2, {
+window_data <- eventReactive(input$update_wt2 | input$update_wt, {
 
   #import all inputs
   sps_type <- input$sps_type
@@ -243,6 +261,8 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
   mpoudre <- input$mpoudre
   tmin <- input$Trangeinput[1]
   tmax <- input$Trangeinput[2]
+  
+  
   data <- dataset()
   data2 <- datablc()
 
@@ -343,58 +363,6 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
        window_data()
      })
      
-     #color palette picker
-     #the idea is to create a string that will be used in the ggplot call
-     
-     color_palette <- reactive({
-       plottype <- input$pl_type
-       if (input$col_theme == "Vir_vir"){
-         if (plottype=="DV") {
-           str_col_palette <- scale_color_viridis(discrete = TRUE,option="viridis")
-         } else {
-           str_col_palette <- scale_fill_viridis(discrete = TRUE,option="viridis")
-         }
-       } else if (input$col_theme == "Vir_mag") {
-         if (plottype=="DV") {
-           str_col_palette <- scale_color_viridis(discrete = TRUE,option="magma")
-         } else {
-           str_col_palette <- scale_fill_viridis(discrete = TRUE,option="magma")
-         }
-       } else if (input$col_theme == "Vir_plas") {
-         if (plottype=="DV") {
-           str_col_palette <- scale_color_viridis(discrete = TRUE,option="plasma")
-         } else {
-           str_col_palette <- scale_fill_viridis(discrete = TRUE,option="plasma")
-         }
-       } else if (input$col_theme == "Br_S1") {
-         if (plottype=="DV") {
-           str_col_palette <- scale_color_brewer(palette="Set1")
-         } else {
-           str_col_palette <- scale_fill_brewer(palette="Set1")
-         }
-       } else if (input$col_theme == "Br_S2") {
-         if (plottype=="DV") {
-           str_col_palette <- scale_color_brewer(palette="Set2")
-         } else {
-           str_col_palette <- scale_fill_brewer(palette="Set2")
-         }
-       } else if (input$col_theme == "Br_S3") {
-         if (plottype=="DV") {
-           str_col_palette <- scale_color_brewer(palette="Set3")
-         } else {
-           str_col_palette <- scale_fill_brewer(palette="Set3")
-         }
-       } else if (input$col_theme == "Br_Spectral") {
-         if (plottype=="DV") {
-           str_col_palette <- scale_color_brewer(palette="Spectral")
-         } else {
-           str_col_palette <- scale_fill_brewer(palette="Spectral")
-         }
-       }
-       
-       return(str_col_palette)  
-     })
-
      output$avtemp_plot <- renderPlotly({
        data <- dataset()
        req(input$file_in)
@@ -425,7 +393,7 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
 
        g <- ggplot(data2, aes(AV.Pyrometer, reldisp))
        g <- g + geom_line()
-       g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc))
+       g <- g + geom_line(data=win_data,aes(AV.Pyrometer, dplblanc),size=2,color="blue")
        g <- g + xlab("Temperature (°C)") + ylab("Relative blanc displacement (mm)")
 
        print(g)
@@ -455,19 +423,82 @@ window_data <- eventReactive(input$update_wt | input$update_wt2, {
        
      })
 
-     output$dwnld <- downloadHandler(
-         filename = function() {
-             "Plot.pdf" 
-         },
-         content=function(file){
-             file.copy("plot.pdf", file, overwrite=TRUE)
-         }
-     )
+     output$dwnld_window <- downloadHandler(
+       filename = function() { "densification rate.png" },
+       content = function(file) {
+    
+             win_data <- window_data()
+             hgt <-  input$Down_height/300
+             wdth <- input$Down_width/300
 
+             sze <- input$point_size
+             apha <- input$point_alpha
+             g <- ggplot(win_data, aes(AV.Pyrometer, DDDTsurD))
+             g <- g + geom_line()
+             g <- g + geom_point(size=sze,alpha=apha)
+             g <- g + geom_smooth(se = FALSE,span = input$smooth)
+             g <- g + xlab("Temperature (°C)") + ylab(expression(1/D. ~ partialdiff ~ D / partialdiff ~t))
+         
+         
+         ggsave(file, plot = g, device = "png",width=wdth,height = hgt)
+       }
+     )
+     
+     data_batch <- reactive({
+       batchFile <- input$dens_rate_in
+       
+       
+       if (is.null(batchFile)) {
+         return(NULL)
+       } else {
+       
+       numfiles = nrow(batchFile) 
+       out.file<-""
+       file.names <- dir(batchFile$datapath, pattern =".csv")
+
+       for(i in 1:nrow(batchFile)){
+
+         name <- basename(batchFile$datapath[i])
+         data_b<-read.csv(batchFile$datapath[i],sep=",",header=TRUE)
+         data_b <- data_b[3:nrow(data_b)-1,c(3,16)]
+         data_b$sample <- name
+         out.file <- rbind(out.file, data_b)
+       }
+
+       data_b <- out.file
+       data_b <- data_b[2:nrow(data_b),]
+
+       data_b$DDDTsurD <- as.numeric(data_b$DDDTsurD)
+       data_b$AV.Pyrometer <- as.numeric(data_b$AV.Pyrometer)
+       
+       return(data_b)
+       
+       }
+     })
+     
+
+     output$batch_table <- renderDataTable({
+       req(input$dens_rate_in)
+       data_batch()
+     })
+
+     output$batch_plot <- renderPlot({
+      req(input$dens_rate_in)
+       batchplot_data <- data_batch()
+       
+       g <- ggplot(batchplot_data, aes(AV.Pyrometer, DDDTsurD, group=sample, color=sample))
+       g <- g + geom_line(size=1)
+       g <- g + geom_point(size=3)
+       g <- g + xlab("Temperature (degC)") + ylab("1/D.dD/dt")
+       print(g)
+
+     })
+
+     
      htext <- div(
-       h1("reste à coder :"),
+       h1("reste a coder :"),
        br(),
-       "boutons de téléchargement des graphes individuels et des tables de données",
+       "boutons de téléchargement des graphes individuels et des tables de données -> OK pour le densification rate",
        br(),
        "intégration d'un graphe de résumé complet des données avec facet grid et gestion couleurs alpha etc.",
        br(),
