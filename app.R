@@ -8,6 +8,7 @@ library(viridis)
 library(zoo)
 library(lubridate)
 library(plotly)
+library(shinyFiles)
 
 
 theme_set(theme_bw(10))
@@ -91,7 +92,11 @@ ui <- fluidPage(
                                                   br(),
                                                   column(2,downloadButton("dwnld_window",label = "Get plot"))),
 
-                                           hr(),       
+                                           hr(),
+                                           
+                                           column(12,h2("Max sintering rate temperature"),dataTableOutput("max_temp_plot")),
+                                           
+                                           hr(),
                                            column(12,h2("Density evolution"),plotOutput("density_plot"))),
                                     column(4,
                                            hr(),
@@ -111,11 +116,17 @@ ui <- fluidPage(
 
                            column(12,
                                   h3("Densification rate plot comparison"),
-                                  fileInput("dens_rate_in","Data file", multiple = TRUE),
+                                  # shinyFilesButton("dens_rate_in", "Choose a file" ,
+                                                   # title = "Please select a file:", multiple = TRUE,
+                                                   # buttonType = "default", class = NULL),
+                                  
+                                  #fileInput("dens_rate_in","Data file", multiple = TRUE),
                                   # 
-                                  # fileInput("dens_rate_in","Data files", multiple = TRUE,accept = ".csv"),
+                                  fileInput("dens_rate_in","Data files", multiple = TRUE,accept = ".csv"),
                                   plotOutput("batch_plot"),
                                   textOutput("batch_txt"),
+                                  textOutput("myFileName"),
+                                  textOutput("txt_file"),
                                   dataTableOutput("batch_table")
                                   )
                               )
@@ -127,7 +138,7 @@ ui <- fluidPage(
 )
 
 
-server = function(input, output){
+server = function(input, output,session){
 
 
 
@@ -328,7 +339,6 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
   #density relative
   data$reldensity <- data$density/dth
   
-  
   #Sampling
   data_ech <- data[data$No. %% input$sample_rate ==0,]
   
@@ -336,7 +346,6 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
   data_ech$DDDTsurD <- NA
   for(i in 2:(length(data_ech$No.)-1)) data_ech$DDDTsurD[i] <- (1/data_ech$density[i])*((data_ech$density[i+1]-data_ech$density[i-1]))/((data_ech$No.[i+1]-data_ech$No.[i-1]))
   
-
   return(data_ech)
 })
 
@@ -444,9 +453,110 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
        }
      )
      
+     
+     max_temp <- eventReactive(input$update_wt2 | input$update_wt, {
+         
+         #import all inputs
+         sps_type <- input$sps_type
+         dmes <- input$dmes
+         dth <- input$dth
+         Dech <- input$Dech
+         mpoudre <- input$mpoudre
+         tmin <- input$Trangeinput[1]
+         tmax <- input$Trangeinput[2]
+         
+         
+         data <- dataset()
+         data2 <- datablc()
+         
+         #__________________________________________________________
+         #subset sur la plage de donn?es choisie pour data et data2
+         #valeurs inf ? Tmin
+         data <- data[data$AV.Pyrometer>tmin,]
+         
+         #autres valeurs
+         if (data$AV.Pyrometer[length(data$AV.Pyrometer)-1] > data$AV.Pyrometer[length(data$AV.Pyrometer)])  {
+           
+           #identifier le temps ? partir duquel on refroidit
+           timemaxt <- min(data[data$AV.Pyrometer == max(data$AV.Pyrometer),"No."])
+           #on subset ? partir de ce temps
+           data <- data[data$No.<timemaxt,]
+           #final subset par rapport ? Tmax
+           data <- data[data$AV.Pyrometer<tmax,]
+           
+         } else {
+           data <- data[data$AV.Pyrometer<tmax,]
+         }
+         
+         
+         #valeurs inf ? Tmin
+         data2 <- data2[data2$AV.Pyrometer>tmin,]
+         
+         #autres valeurs
+         if (data2$AV.Pyrometer[length(data2$AV.Pyrometer)-1] > data2$AV.Pyrometer[length(data2$AV.Pyrometer)])  {
+           
+           #identifier le temps ? partir duquel on refroidit
+           timemaxt <- min(data2[data2$AV.Pyrometer == max(data2$AV.Pyrometer),"No."])
+           #on subset ? partir de ce temps
+           data2 <- data2[data2$No.<timemaxt,]
+           #final subset par rapport ? Tmax
+           data2 <- data2[data2$AV.Pyrometer<tmax,]
+           
+         } else {
+           data2 <- data2[data2$AV.Pyrometer<tmax,]
+         }
+         
+         
+         data$reldisp <- as.numeric(data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1])
+         #data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
+         
+         #fit avec polynome deg 2 deplacement du blanc
+         pred <- data.frame(AV.Pyrometer = data$AV.Pyrometer)
+         model_blanc_displacement <- lm(reldisp ~ poly(AV.Pyrometer,2), data=data2)
+         
+         data$dplblanc <- predict(model_blanc_displacement, pred)
+         
+         #d?placement corrig?
+         data$dplcorr <- data$reldisp - data$dplblanc
+         
+         #hauteur finale
+         hfin <- as.numeric(mpoudre/(((pi*(Dech/20)^2))*dmes))
+         
+         #hauteur lit de poudre
+         data$hlitpoudre <- hfin + as.numeric(data[length(data$No.),"reldisp"]) - data$reldisp
+         
+         #densit?
+         data$density <- mpoudre/(((pi*(Dech/20)^2))*data$hlitpoudre)
+         
+         #density relative
+         data$reldensity <- data$density/dth
+         
+         #Sampling
+         for (i in (1:input$sample_rate)){
+           data_ech <- data[data$No. %% i ==0,]
+           
+           #dérivée
+           data_ech$DDDTsurD <- NA
+           for(j in 2:(length(data_ech$No.)-1)) data_ech$DDDTsurD[j] <- (1/data_ech$density[j])*((data_ech$density[j+1]-data_ech$density[j-1]))/((data_ech$No.[j+1]-data_ech$No.[j-1]))
+           
+           max_tempi <- data_ech[data_ech$DDDTsurD==max(data_ech$DDDTsurD),"AV.Pyrometer"]
+           
+           
+         }
+         
+         return(max_tempi)
+
+       })
+       
+     output$max_temp_plot <- renderDataTable({
+       req(input$dens_rate_in)
+       max_temp()
+     })
+     
+     
+     
      data_batch <- reactive({
        batchFile <- input$dens_rate_in
-       
        
        if (is.null(batchFile)) {
          return(NULL)
@@ -476,6 +586,51 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
        }
      })
      
+     
+     batch_file_name <- reactive({
+       batchFile <- input$dens_rate_in
+       
+       if (is.null(batchFile))
+         return(NULL)
+       
+       return (stringi::stri_extract_first(str = batchFile$name, regex = ".*(?=\\.)"))
+     })
+     
+     
+     data_batch <- reactive({
+       
+       batchFile <- input$dens_rate_in
+      
+       if (is.null(batchFile)) {
+         return(NULL)
+       } else {
+         
+         
+         numfiles = nrow(batchFile) 
+         out.file<-""
+         
+         batch_file_names <- batch_file_name()
+         
+         for(i in 1:nrow(batchFile)){
+           
+           name <- basename(batchFile$datapath[i])
+           data_b<-read.csv(batchFile$datapath[i],sep=",",header=TRUE)
+           data_b <- data_b[3:nrow(data_b)-1,c(3,16)]
+           data_b$sample <- batch_file_names[i]
+           out.file <- rbind(out.file, data_b)
+         }
+         
+         data_b <- out.file
+         data_b <- data_b[2:nrow(data_b),]
+         
+         data_b$DDDTsurD <- as.numeric(data_b$DDDTsurD)
+         data_b$AV.Pyrometer <- as.numeric(data_b$AV.Pyrometer)
+         
+         return (data_b)
+         }
+     })
+     
+     output$myFileName <- renderText({ batch_file_name() })
 
      output$batch_table <- renderDataTable({
        req(input$dens_rate_in)
