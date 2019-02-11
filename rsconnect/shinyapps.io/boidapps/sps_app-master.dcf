@@ -1,0 +1,10 @@
+name: sps_app-master
+title:
+username:
+account: boidapps
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 621671
+bundleId: 1869358
+url: https://boidapps.shinyapps.io/sps_app-master/
+when: 1549902729.3017
