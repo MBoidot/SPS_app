@@ -9,4 +9,9 @@ A shiny application for treatment of Spark plasma sintering files from different
 
 # Deployed to the french FACE community on Feb 1st 2022
 
+# How to contribute :
+
+https://www.jetbrains.com/help/idea/contribute-to-projects.html
+
+
 Call to all willing people and ideas to further develop the application !
