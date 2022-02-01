@@ -1,5 +1,20 @@
 Initial ideas are listed in the help section of the app which is not their place.
-Further ideas can be sumbmitted in this section
-
+Further ideas can be sumbmitted in this section.
+Implementation of the ideas and contribution to existing ones can be done following this procedure :
 # how to contribute 
 https://www.jetbrains.com/help/idea/contribute-to-projects.html
+
+#_______List of ideas___________
+Idea 1 : Implement a database connection (with SQlite for instance) for data gathering and further treatment
+https://shanghai.hosting.nyu.edu/data/r/case-3-sql-shiny.html
+The above lin provides a simple model
+Relational model have to be constructed
+Data confidentiality have to be managed
+Have to write an agreement on the principle of data sharing to be signed by users
+
+Idea 2 : Reformat the interface for more making it easily customizable by adding tabs. See this example (for DMA testing) : https://boidapps.shinyapps.io/DMA_app
+using shinydashboard package (https://rstudio.github.io/shinydashboard/)
+
+Idea 3 : Find a sexier name. I propose TOST (as a tribute to Geoffroy Chevallier from PNF2 Toulouse, as a acronym of This One Should be Transparent)
+
+Idea 4 : Set up a poll to collect....more ideas from our community
