@@ -1,1 +1,6 @@
-
+1 - Create a sub directory in the "Files" directory of the main directory
+2 - upload a Window test run and a blank run in the "Files" directory of the main directory
+3 - Create a new branch and write the code for column recognitions and tratment of the new file type
+Don't forget to write the code for in the server and in the ui section of the app
+4 - Do some testing
+5 - After testing is validated, create a pull request
