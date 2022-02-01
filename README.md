@@ -15,3 +15,4 @@ https://www.jetbrains.com/help/idea/contribute-to-projects.html
 
 
 Call to all willing people and ideas to further develop the application !
+A list of ideas is present in this repository (developement ideas file). Feel free to contact me @ mathieu.boidot@cea.fr to discuss about your ideas and their implementation
