@@ -2,7 +2,7 @@
 A shiny application for treatment of Spark plasma sintering files from different manufacturers
 
 
-# As of 2022-02-01
+# Accepted files from (as of 2022-02-01) :
 - FCT HPD 5
 - FCT HPD 25
 - Sumitomo Dr Sinter 2080
