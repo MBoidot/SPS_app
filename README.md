@@ -1,4 +1,4 @@
-# SPS_app
+# TOST
 A shiny application for treatment of Spark plasma sintering files from different manufacturers
 
 
@@ -16,3 +16,12 @@ https://www.jetbrains.com/help/idea/contribute-to-projects.html
 
 Call to all willing people and ideas to further develop the application !
 A list of ideas is present in this repository (developement ideas file). Feel free to contact me @ mathieu.boidot@cea.fr to discuss about your ideas and their implementation
+
+# Cite this application when using for yout data treatment and visualization
+
+@Manual{,
+  title = {TOST - A shiny application for SPS data analysis},
+  author = {Mathieu BOIDOT},
+  year = {2022},
+  company = {Commissariat à l'Energie Atomique et aux Energies Alternatives},
+}
