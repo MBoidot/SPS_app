@@ -23,3 +23,5 @@ A branch in this repository is meant to reformat the interface on the ui section
 Idea 3 : Find a sexier name. I propose TOST (as a tribute to Geoffroy Chevallier from PNF2 Toulouse, as a acronym of This One Should be Transparent)
 
 Idea 4 : Set up a poll to collect....more ideas from our community
+
+Idea 5 : Rewrite some code, to avoid repeating. Add comments. Separate Ui and server parts of the shiny app. Add some login functions (session parameter).
