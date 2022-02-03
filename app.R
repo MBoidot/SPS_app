@@ -129,7 +129,10 @@ ui <- fluidPage(
                                   )
                               )
                          ),
-                tabPanel("Help",htmlOutput("helptxt"))
+                tabPanel("Help",htmlOutput("helptxt"),
+                tabPanel("Releases",htmlOutput("version_text")
+                        
+                        )
             )
         )
     )
@@ -149,14 +152,14 @@ dataset <-reactive({
         return(NULL)
       }
       
-      #conditionnement de la lecture des données
+      #Data importing
       if (sps_type=="HPD5"){
         data <-  read.csv2(inFile$datapath,header=TRUE, sep=";",fileEncoding="latin1")
         
-        #retrait de la premiere ligne d'unites
+        #Remove first line (units)
         data <- data[-1,]
         
-        #on garde les colonnes utiles
+        #Keep useful columns
         data <- data[,c(1,5,6,12,14,16,17)]
         data[] <- sapply(data, gsub, pattern = ",", replacement= ".")
         data[] <- sapply(data, as.numeric)
@@ -168,10 +171,10 @@ dataset <-reactive({
       } else if (sps_type=="HPD25"){
         data <-  read.csv2(inFile$datapath,header=TRUE, sep=",",fileEncoding="latin1")
         
-        #retrait de la premiere ligne d'unites
+        #Remove first line (units)
         data <- data[-1,]
         
-        #on garde les colonnes utiles
+        #Keep useful columns
         data <- data[,c(1,5,6,7,10,12,17,18)]
         data[] <- sapply(data, gsub, pattern = ",", replacement= ".")
         data[] <- sapply(data, as.numeric)
@@ -180,7 +183,7 @@ dataset <-reactive({
         data$reldisp <- data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1]
 
       } else {
-        #cas Dr sinter
+        #Last machine type up to 2022 02 03 : Dr sinter 2080
 
         data <- read_excel(inFile$datapath, 1)
         
@@ -200,7 +203,7 @@ dataset <-reactive({
     return(data)
     })  
 
-
+#same process on the blank file
 datablc<-reactive({
 
   blcFile <- input$blanc_in
@@ -213,10 +216,10 @@ datablc<-reactive({
   if (sps_type=="HPD5"){
     data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=";",fileEncoding="latin1")
     
-    #retrait de la premiere ligne d'unites
+    #Remove first line (units)
     data2 <- data2[-1,]
     
-    #on garde les colonnes utiles
+    #Keep useful columns
     data2 <- data2[,c(1,5,6,12,14,16,17)]
     data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
     data2[] <- sapply(data2, as.numeric)
@@ -226,10 +229,10 @@ datablc<-reactive({
   } else if (sps_type=="HPD25"){
     data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=",",fileEncoding="latin1")
     
-    #retrait de la premiere ligne d'unites
+    #Remove first line (units)
     data2 <- data2[-1,]
     
-    #on garde les colonnes utiles
+    #Keep useful columns
     data2 <- data2[,c(1,5,6,7,10,12,17,18)]
     data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
     data2[] <- sapply(data2, as.numeric)
@@ -237,7 +240,7 @@ datablc<-reactive({
     data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
 
   } else {
-    #cas Dr Sinter
+    #Dr Sinter 2080
 
     data2 <- read_excel(blcFile$datapath, 1)
     
@@ -276,18 +279,20 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
   data2 <- datablc()
 
   #__________________________________________________________
-  #subset sur la plage de donn?es choisie pour data et data2
-  #valeurs inf ? Tmin
+  #Subset data and data2 in the chosen Temperature range
+  #valeurs inf at Tmin
   data <- data[data$AV.Pyrometer>tmin,]
   
-  #autres valeurs
+  #Other values
+  #conditional for identifying if the recording was stopped before cooling or not
+  #firt case : end of file corresponds to cooling
   if (data$AV.Pyrometer[length(data$AV.Pyrometer)-1] > data$AV.Pyrometer[length(data$AV.Pyrometer)])  {
     
-    #identifier le temps ? partir duquel on refroidit
+    #Identify starting time of cooling
     timemaxt <- min(data[data$AV.Pyrometer == max(data$AV.Pyrometer),"No."])
-    #on subset ? partir de ce temps
+    #Subset from this time
     data <- data[data$No.<timemaxt,]
-    #final subset par rapport ? Tmax
+    #final subset with respect to Tmax
     data <- data[data$AV.Pyrometer<tmax,]
     
   } else {
@@ -295,17 +300,21 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
   }
   
   
-  #valeurs inf ? Tmin
+  #Remove everything before tmin
   data2 <- data2[data2$AV.Pyrometer>tmin,]
   
-  #autres valeurs
+  #Other values
+  #Other values
+  #conditional for identifying if the recording was stopped before cooling or not
+  #firt case : end of file corresponds to cooling
+  
   if (data2$AV.Pyrometer[length(data2$AV.Pyrometer)-1] > data2$AV.Pyrometer[length(data2$AV.Pyrometer)])  {
     
-    #identifier le temps ? partir duquel on refroidit
+    #Identify starting time of cooling
     timemaxt <- min(data2[data2$AV.Pyrometer == max(data2$AV.Pyrometer),"No."])
-    #on subset ? partir de ce temps
+    #Subset from this time
     data2 <- data2[data2$No.<timemaxt,]
-    #final subset par rapport ? Tmax
+    #final subset with respect to Tmax
     data2 <- data2[data2$AV.Pyrometer<tmax,]
     
   } else {
@@ -314,33 +323,32 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
   
   
   data$reldisp <- as.numeric(data$AV.Abs..Piston.T-data$AV.Abs..Piston.T[1])
-  #data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
   
-  #fit avec polynome deg 2 deplacement du blanc
+  #Blank displacement fitted with 2nd order polynomial function
   pred <- data.frame(AV.Pyrometer = data$AV.Pyrometer)
   model_blanc_displacement <- lm(reldisp ~ poly(AV.Pyrometer,2), data=data2)
   
   data$dplblanc <- predict(model_blanc_displacement, pred)
   
-  #d?placement corrig?
+  #Modified displacement
   data$dplcorr <- data$reldisp - data$dplblanc
   
-  #hauteur finale
+  #Final height of the sample
   hfin <- as.numeric(mpoudre/(((pi*(Dech/20)^2))*dmes))
   
-  #hauteur lit de poudre
+  #Height of the powder bed
   data$hlitpoudre <- hfin + as.numeric(data[length(data$No.),"reldisp"]) - data$reldisp
   
-  #densit?
+  #Density
   data$density <- mpoudre/(((pi*(Dech/20)^2))*data$hlitpoudre)
   
-  #density relative
+  #Relative density
   data$reldensity <- data$density/dth
   
   #Sampling
   data_ech <- data[data$No. %% input$sample_rate ==0,]
   
-  #dérivée
+  #Derivative
   data_ech$DDDTsurD <- NA
   for(i in 2:(length(data_ech$No.)-1)) data_ech$DDDTsurD[i] <- (1/data_ech$density[i])*((data_ech$density[i+1]-data_ech$density[i-1]))/((data_ech$No.[i+1]-data_ech$No.[i-1]))
   
@@ -519,7 +527,7 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
 
      
      htext <- div(
-       h1("reste a coder :"),
+       h1("Help text to be inserted here"),
        br(),
        "boutons de téléchargement des graphes individuels et des tables de données -> OK pour le densification rate",
        br(),
@@ -529,6 +537,15 @@ window_data <- eventReactive(input$update_wt2 | input$update_wt, {
        )
      
      output$helptxt <- renderUI(htext)
+  
+  vtext <- div(
+       h3("Help text to be inserted here"),
+       br(),
+       "V1.0.0 - First release of the application",
+       )
+  output$version_text <- renderUI(vtext)
+  
+  
 }
 
 shinyApp(ui = ui, server = server)
