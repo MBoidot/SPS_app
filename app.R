@@ -1,4 +1,3 @@
-library(shiny)
 library(xlsx)
 library(readxl)
 library(dplyr)
@@ -6,9 +5,18 @@ library(ggplot2)
 library(reshape2)
 library(viridis)
 library(zoo)
-library(lubridate)
 library(plotly)
 library(shinyFiles)
+library(shiny)
+library(tidyverse)
+library(lubridate)
+library(shinyFiles)
+library(htmltools)
+library(colourpicker)
+library(rsconnect)
+library(bsplus)
+library(shinydashboard)
+library(DT)
 
 
 theme_set(theme_bw(10))
@@ -25,124 +33,109 @@ theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
              strip.text.y=element_text(size=14,face="bold"))
 
 
-
-ui <- fluidPage(
-  
-  pageWithSidebar(
-    headerPanel("SPS file treatment"),
+  ui <- dashboardPage(
+    dashboardHeader(title = "SPS file treatment"),
     
     
-    sidebarPanel(width = 2,
-                 fileInput("file_in","Data file", multiple = FALSE),
-                 fileInput("blanc_in","Blanc file", multiple = FALSE),
-                 actionButton("update_wt", "Update Windowtest plot"),
-                 br(),
-                 br(),
-                 selectInput("sps_type", "Choose SPS device:", choices =  list(FCT = c(`FCT HPD 25` = 'HPD25', `FCT HPD 5` = 'HPD5'),
-                                                                               Sumitomo = c(`Dr Sinter 2080` = 'DS2080')))
-                 
-    ),
     
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Plot",
-                 fluidRow(
-                   
-                   column(12,
-                          h3("Material inputs"),
-                          column(3,
-                                 numericInput("dmes", "Measured density (g/cm3)", value = 1,width = '100%'),
-                                 numericInput("dth", "Theoretical density (g/cm3)", value = 1)),
-                          column(3,numericInput("Dech", "Diameter (mm)", 20, min = 10, max = 80),
-                                 numericInput("mpoudre", "Powder mass (g)", value = 1))
-                   ),
-                   
-                   column(12,
-                          column(8,
-                                 hr(),
-                                 h2("Recorded temperature"),
-                                 plotlyOutput("avtemp_plot"),
-                                 hr(),
-                                 h2("Blanc relative displacement and model"),
-                                 plotOutput("blancdisp_plot"),
-                                 
-                                 
-                                 column(12, 
-                                        hr(),
-                                        h2("Densification rate"),
-                                        plotOutput("window_plot"),
-                                        hr(),
-                                        column(2,numericInput("sample_rate", "Sampling rate", value = 10)),
-                                        column(2,sliderInput("smooth", "Smoothing", min=0, max=1, value=0.2)),
-                                        column(5,
-                                               sliderInput("Trangeinput", "Temperature range", min = 0, max = 2500, value = c(750, 1134), width = '100%')),
-                                        br(),
-                                        br(),
-                                        column(2,actionButton("update_wt2", "Update Windowtest plot"))),
-                                 
-                                 column(12,
-                                        hr(),
-                                        h3("Output Options"),
-                                        
-                                        column(3,sliderInput("Down_width", "Width (px)", min = 800, max = 4096, value = 2000)),
-                                        column(3,sliderInput("Down_height", "Height (px)", min = 600, max = 4096, value = 1000)),
-                                        column(2,sliderInput("point_size", "Point size", min=0, max=6, value=0.25, step = 0.05)),
-                                        column(2,sliderInput("point_alpha", "Alpha", min=0.25, max=1, value=1)),
-                                        br(),
-                                        br(),
-                                        column(2,downloadButton("dwnld_window",label = "Get plot"))),
-                                 
-                                 hr(),
-                                 
-                                 column(12,h2("Max sintering rate temperature"),dataTableOutput("max_temp_plot")),
-                                 
-                                 hr(),
-                                 column(12,h2("Density evolution"),plotOutput("density_plot"))),
-                          column(4,
-                                 hr(),
-                                 
-                                 verbatimTextOutput("brush"))
+    dashboardSidebar(sidebarMenu(
+      menuItem("File treatment", tabName = "menuitem1", icon = icon("file")),
+      menuItem("Batch compare", tabName = "menuitem2", icon = icon("copy")),
+      menuItem("Releases", tabName = "menuitem3", icon = icon("copy"))
+      
+      
+      
+    )),
+    dashboardBody(
+      tabItems(
+        tabItem("menuitem1",
+                
+                fluidRow(
+                  box(width = 12, title = "",solidHeader = FALSE, status = "primary",collapsible= TRUE,
+                      box(width = 6, title = "Settings", status = "warning",
+                          fluidRow(column(6,fileInput("file_in","Data file", multiple = FALSE)),
+                                   column(6,fileInput("blanc_in","Blanc file", multiple = FALSE))),
+                           
+                          fluidRow(column(8,selectInput("sps_type", "Choose SPS device:", choices =  list(FCT = c(`FCT HPD 25` = 'HPD25', `FCT HPD 5` = 'HPD5'),
+                                                                                                          Sumitomo = c(`Dr Sinter 2080` = 'DS2080')))),
+                                   column(4,br(),actionButton("update_wt", "Compute",class = "btn-info")))
+                      ),
+                      box(width = 6, title = "Material inputs", status = "info",
                           
-                   )
-                 )
-                 
+                          fluidRow(column(6,numericInput("dmes", "Measured density (g/cm3)", value = 1,width = '100%')),
+                                   column(6,numericInput("Dech", "Diameter (mm)", 20, min = 10, max = 80))),
+                          
+                          fluidRow(column(6,numericInput("dth", "Theoretical density (g/cm3)", value = 1)),
+                                   column(6,numericInput("mpoudre", "Powder mass (g)", value = 1)))
+                          )
+                      ),
+                  
+                  box(width = 12, status = "info",collapsible= TRUE,
+                      box(width = 6, title = "Recorded temperature", plotlyOutput("avtemp_plot"),status = "info"),
+                      box(width = 6, title = "Blanc displacement model", plotOutput("blancdisp_plot"),status = "info")
+                  )
+                ),
+                
+                fluidRow(
+                  box(width = 12, title = "Window Plot",solidHeader = FALSE, status = "primary",collapsible= TRUE,
+                      box(width = 12, title = "Plot", status = "info",
+                          plotOutput("window_plot")
+                      ),
+                      box(width = 12, title = "Settings", status = "danger",
+                          column(2,numericInput("sample_rate", "Sampling rate", value = 10)),
+                                  column(2,sliderInput("smooth", "Smoothing", min=0, max=1, value=0.2)),
+                                  column(5,
+                                         sliderInput("Trangeinput", "Temperature range", min = 0, max = 2000, value = c(750, 1200), width = '100%')),
+                                  br(),
+                                  br(),
+                                  column(2,actionButton("update_wt2", "Update Windowtest plot"))
+                          
+                          )
+                    )
+                ),
+                
+                fluidRow(
+                  box(width = 12, title = "Data",solidHeader = FALSE, status = "primary",collapsible= TRUE,
+                          downloadButton("downloadwindowtable", "Download processed data", class="btn-info"),
+                          hr(),
+                          bs_accordion(id = "data_accordion") %>%
+                            bs_set_opts(panel_type = "info") %>%
+                            bs_append(title = "Window data",
+                                content = dataTableOutput("window_table"),downloadButton("downloadwindowtable", "Download")) %>%
+                            bs_set_opts(panel_type = "info", use_heading_link = TRUE) %>%
+                            bs_append(title = "Sintering data",
+                                content = dataTableOutput("reduced_data_table")) %>%
+                            bs_set_opts(panel_type = "info") %>%
+                            bs_append(title = "Blanc data",
+                                content = dataTableOutput("reduced_data_table_blanc"))
+                      )
+                )
         ),
-        tabPanel("Data", dataTableOutput("reduced_data_table")),
-        tabPanel("Data blanc", dataTableOutput("reduced_data_table_blanc")),
-        tabPanel("Sampled data",dataTableOutput("window_table"),downloadButton("downloadwindowtable", "Download")),
         
-        tabPanel("Batch treatment",
-                 fluidRow(
-                   
-                   column(12,
-                          h3("Densification rate plot comparison"),
-                          # shinyFilesButton("dens_rate_in", "Choose a file" ,
-                          # title = "Please select a file:", multiple = TRUE,
-                          # buttonType = "default", class = NULL),
-                          
-                          #fileInput("dens_rate_in","Data file", multiple = TRUE),
-                          # 
-                          fileInput("dens_rate_in","Data files", multiple = TRUE,accept = ".csv"),
-                          plotOutput("batch_plot"),
-                          textOutput("txt_file"),
-                          dataTableOutput("batch_table")
-                   )
-                 )
-        ),
-        tabPanel("Help",htmlOutput("helptxt")),
-                 tabPanel("Releases",htmlOutput("version_text")
-                          
-                 )
-        )
-      )
-    )
-  )
+        tabItem("menuitem2",
+                fluidRow(box(width = 12,h3("Densification rate plot comparison"),
 
-  
-  
-  server = function(input, output,session){
-    
-    
+                                     column(2,fileInput("dens_rate_in","Data files", multiple = TRUE,accept = ".csv")
+                                     )
+                                   )
+                    ),
+                    
+              fluidRow(box(width=12,plotOutput("batch_plot"))),
+               fluidRow(box(width=12,title = "Data",solidHeader = FALSE, status = "primary",collapsible= TRUE,dataTableOutput("batch_table")))
+
+                    
+                
+      ),
+      
+      
+      tabItem("menuitem3",htmlOutput("version_text"))
+      
+      
+      #end of tab item
+      )))
+
+
+  server = function(input, output, session) {
     
     #create the dynamic dataset according to the chosen file
     dataset <-reactive({ 
@@ -230,12 +223,14 @@ ui <- fluidPage(
       } else if (sps_type=="HPD25"){
         data2 <-  read.csv2(blcFile$datapath,header=TRUE, sep=",",fileEncoding="latin1")
         
+        
         #Remove first line (units)
         data2 <- data2[-1,]
         
         #Keep useful columns
         data2 <- data2[,c(1,5,6,7,10,12,17,18)]
         data2[] <- sapply(data2, gsub, pattern = ",", replacement= ".")
+        
         data2[] <- sapply(data2, as.numeric)
         
         data2$reldisp <- as.numeric(data2$AV.Abs..Piston.T-data2$AV.Abs..Piston.T[1])
@@ -265,7 +260,7 @@ ui <- fluidPage(
     
     
     window_data <- eventReactive(input$update_wt2 | input$update_wt, {
-      
+      req(input$blanc_in)
       #import all inputs
       sps_type <- input$sps_type
       dmes <- input$dmes
@@ -304,7 +299,7 @@ ui <- fluidPage(
       #Remove everything before tmin
       data2 <- data2[data2$AV.Pyrometer>tmin,]
       
-
+      
       #Other values
       #conditional for identifying if the recording was stopped before cooling or not
       #first case : end of file corresponds to cooling
@@ -356,9 +351,7 @@ ui <- fluidPage(
       return(data_ech)
     })
     
-    output$reduced_data_table <- renderDataTable({
-      head(dataset(),20)
-    })
+
     
     output$downloadwindowtable <- downloadHandler(
       filename = function() {
@@ -369,14 +362,25 @@ ui <- fluidPage(
         write.csv(df1, file)
       }
     )
-    
-    output$reduced_data_table_blanc <- renderDataTable({
-      head(datablc(),20)
+
+    output$window_table <- DT::renderDataTable({datatable(
+      window_data(),
+      options = list(scrollX = TRUE)) %>%
+      formatRound(columns = c(9:16), digits=2) %>%
+      formatStyle(names(window_data()),`text-align` = 'center')
     })
     
-    output$window_table <- renderDataTable({
-      req(input$blanc_in)
-      window_data()
+    output$reduced_data_table_blanc <- DT::renderDataTable({datatable(
+      datablc(),
+      options = list(scrollX = TRUE)) %>%
+        formatStyle(names(datablc()),`text-align` = 'center')
+    })
+    
+    output$reduced_data_table <- DT::renderDataTable({datatable(
+      dataset(),
+      options = list(scrollX = TRUE)) %>%
+        formatRound(columns = c(9:10), digits=2) %>%
+        formatStyle(names(dataset()),`text-align` = 'center')
     })
     
     output$avtemp_plot <- renderPlotly({
@@ -547,6 +551,20 @@ ui <- fluidPage(
     output$version_text <- renderUI(vtext)
     
     
+    #________Test Zone_________________
+    
+    output$testdatatable <- renderDataTable({
+      datashaping(window_data())
+    })
+    
+    
+    
+    
+    
   }
   
-  shinyApp(ui = ui, server = server)
+  shinyApp(
+    ui = ui,
+    server = server,
+    options = list(launch.browser = TRUE)
+  )
