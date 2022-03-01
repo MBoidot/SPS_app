@@ -530,6 +530,7 @@ theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
       
     })
     
+    
     htext <- div(
       h1("Help text to be inserted here"),
       br(),
@@ -539,6 +540,7 @@ theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
       br(),
       "Implementation de deux sliders pour les intervalles de temperatures. Un pour le modele de deplacement sur le blanc, un pour le graphe de deplacement"
     )
+    
     output$helptxt <- renderUI(htext)
     
     vtext <- div(
@@ -547,13 +549,18 @@ theme_update(panel.grid.major=element_line(colour="#b2b2b2", size=0.5),
       "V1.0.0 - First release of the application",
     )
     output$version_text <- renderUI(vtext)
-       
+    
+    
     #________Test Zone_________________
     
     output$testdatatable <- renderDataTable({
       datashaping(window_data())
     })
- 
+    
+    
+    
+    
+    
   }
   
   shinyApp(
